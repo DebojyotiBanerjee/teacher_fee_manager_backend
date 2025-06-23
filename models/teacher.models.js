@@ -39,12 +39,7 @@ const teacherSchema = new mongoose.Schema({
   },
   
   // Professional Information
-  employeeId: {
-    type: String,
-    required: [true, 'Employee ID is required'],
-    unique: true,
-    uppercase: true
-  },
+
   department: {
     type: String,
     required: [true, 'Department is required'],
@@ -55,9 +50,15 @@ const teacherSchema = new mongoose.Schema({
     required: true
   }],
   qualification: {
-    type: String,
-    required: [true, 'Qualification is required']
-  },
+  type: [String], // Array of strings
+  required: [true, 'At least one qualification is required'],
+  validate: {
+    validator: function(value) {
+      return value.length > 0; // Ensure array isn't empty
+    },
+    message: 'At least one qualification is required'
+  }
+},
   experience: {
     type: Number,
     required: [true, 'Experience is required'],
@@ -86,22 +87,26 @@ const teacherSchema = new mongoose.Schema({
   },
   
   // Fee Structure
-  hourlyRate: {
-    type: Number,
-    required: [true, 'Hourly rate is required'],
-    min: [0, 'Hourly rate cannot be negative']
+  monthlyRate: {
+  type: Number,
+  required: [true, 'Monthly rate is required'],
+  min: [0, 'Monthly rate cannot be negative'],
+  validate: {
+    validator: Number.isInteger,
+    message: 'Monthly rate must be an integer'
+  }
   },
-  
   // Status
   isActive: {
     type: Boolean,
     default: true
   },
   joinDate: {
-    type: Date,
-    default: Date.now
-  },
-  
+  type: Date,
+  default: Date.now,
+  get: (date) => date.getTime() // Convert Date to timestamp when accessed
+},
+
   // Profile Image
   profileImage: {
     type: String,

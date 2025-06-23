@@ -34,12 +34,7 @@ const studentSchema = new mongoose.Schema({
   },
   
   // Academic Information
-  studentId: {
-    type: String,
-    required: [true, 'Student ID is required'],
-    unique: true,
-    uppercase: true
-  },
+  
   grade: {
     type: String,
     required: [true, 'Grade is required'],
@@ -99,14 +94,14 @@ const studentSchema = new mongoose.Schema({
   
   // Parent/Guardian Information
   parentInfo: {
-    fatherName: {
+    guardianName: {
       type: String,
-      required: [true, 'Father name is required'],
+      required: [true, 'Guardian name is required'],
       trim: true
     },
-    motherName: {
+    guardianRelation: {
       type: String,
-      required: [true, 'Mother name is required'],
+      required: [true, 'Guardian relation is required'],
       trim: true
     },
     guardianPhone: {
@@ -142,16 +137,7 @@ const studentSchema = new mongoose.Schema({
       default: 0,
       min: [0, 'Exam fee cannot be negative']
     },
-    libraryFee: {
-      type: Number,
-      default: 0,
-      min: [0, 'Library fee cannot be negative']
-    },
-    labFee: {
-      type: Number,
-      default: 0,
-      min: [0, 'Lab fee cannot be negative']
-    }
+    
   },
   
   // Academic Performance
@@ -177,11 +163,7 @@ const studentSchema = new mongoose.Schema({
       type: Number,
       min: 0,
       max: 100
-    },
-    grade: {
-      type: String,
-      enum: ['A+', 'A', 'B+', 'B', 'C+', 'C', 'D', 'F']
-    }
+    },    
   }],
   
   // Status
@@ -189,10 +171,7 @@ const studentSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  admissionDate: {
-    type: Date,
-    default: Date.now
-  },
+  
   
   // Profile Image
   profileImage: {
@@ -247,3 +226,6 @@ studentSchema.index({ grade: 1, section: 1 });
 const Student = mongoose.model('Student', studentSchema);
 
 module.exports = Student;
+
+
+
