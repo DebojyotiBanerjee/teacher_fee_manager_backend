@@ -1,9 +1,5 @@
-const Teacher = require('./teacher.models');
-const Student = require('./student.models');
-const Payment = require('./payment.models');
+const user = require('./user.models');
 
 module.exports = {
-  Teacher,
-  Student,
-  Payment
+  user,
 };
