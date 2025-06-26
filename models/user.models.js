@@ -5,64 +5,61 @@ const userSchema = new mongoose.Schema(
   {
     fullname: {
       type: String,
-      required: [true, "Full name is required"],
+      required: true,
       trim: true,
-      maxlength: [100, "Full name cannot exceed 100 characters"],
+      maxlength: 100
     },
     email: {
       type: String,
-      required: [true, "Email is required"],
+      required: true,
       unique: true,
       lowercase: true,
-      match: [
-        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
-        "Please enter a valid email",
-      ],
+      match: /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
-      minlength: [6, "Password must be at least 6 characters"],
-      select: false,
+      required: true,      
+      match: /^[a-zA-Z0-9!@#$%^&*]{8,}$/,
+      select: false
     },
     phone: {
       type: String,
-      required: [true, "Phone number is required"],
-      match: [/^[0-9]{10}$/, "Please enter a valid 10-digit phone number"],
+      required: true,
+      match: /^[0-9]{10}$/
     },
     status: {
       type: String,
       enum: ["online", "offline"],
-      default: "offline",
+      default: "offline"
     },
     role: {
       type: String,
       enum: ["teacher", "student"],
-      required: [true, "Role is required"],
+      required: true
     },
     isVerified: {
       type: Boolean,
-      default: false,
+      default: false
     },
     isActive: {
       type: Boolean,
-      default: true,
+      default: true
     },
     otp: {
-      type: String,
+      type: String
     },
     otpExpiry: {
-      type: Date,
+      type: Date
     },
     resetPasswordOTP: {
-      type: String,
+      type: String
     },
     resetPasswordExpires: {
-      type: Date,
-    },
+      type: Date
+    }
   },
   {
-    timestamps: true,
+    timestamps: true
   }
 );
 
