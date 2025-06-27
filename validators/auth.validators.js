@@ -10,6 +10,7 @@ exports.registerValidator = [
     .matches(/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/).withMessage('Please enter a valid email address'),
   body('phone')
     .notEmpty().withMessage('Phone number is required')
+    .matches(/^[0-9]{10}$/).withMessage('Phone number must be 10 digits long')
     .isMobilePhone().withMessage('Valid phone number is required'),
   body('password')
     .notEmpty().withMessage('Password is required')    
