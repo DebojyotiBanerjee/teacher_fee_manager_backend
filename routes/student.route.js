@@ -5,6 +5,9 @@ const detailStudentController = require('../controller/detailStudent.controller'
 const { detailStudentValidator } = require('../validators/student.validator');
 const validator = require('../middleware/validator.middleware');
 
+// Student route
+router.get('/dashboard', authenticateStudent, detailStudentController.getStudentDashboard);
+
 // CRUD endpoints for detailStudent
 router.post('/detail', authenticateStudent, detailStudentValidator, validator, detailStudentController.createDetailStudent);
 router.get('/detail/:id', authenticateStudent, detailStudentController.getDetailStudentById);
