@@ -5,11 +5,22 @@ const cors = require('cors');
 const connectDB = require('./config/dbConfig');
 const routes = require('./routes/index.routes');
 require('events').EventEmitter.defaultMaxListeners = 15;
+// Import Swagger dependencies
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
+const swaggerDefinition = require('./docs/swagger-definition');
 
 // Connect to MongoDB
 connectDB();
 
 const app = express();
+
+// Swagger setup
+const specs = swaggerJsdoc({
+  swaggerDefinition,
+  apis: ['./routes/*.js'], // Path to the API docs
+});
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 // Middleware
 app.use(cors());

@@ -203,7 +203,7 @@ exports.resendOTP = async (req, res) => {
   }
 };
 
-// Login (no OTP, just JWT)
+// Login (with OTP, just JWT)
 exports.login = async (req, res) => {
   try {
     const { login, password } = req.body;
