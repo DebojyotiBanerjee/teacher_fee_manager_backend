@@ -15,7 +15,7 @@ const ratingSchema = new mongoose.Schema({
     },
     studentId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: 'DetailStudent',
         required: true
     },
     rating: {

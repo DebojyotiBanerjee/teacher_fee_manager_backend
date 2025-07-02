@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const connectDB = require('./config/dbConfig');
 const routes = require('./routes/index.routes');
+require('events').EventEmitter.defaultMaxListeners = 15;
 
 // Connect to MongoDB
 connectDB();
