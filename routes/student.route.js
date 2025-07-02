@@ -1,10 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateStudent } = require('../middleware/role.middleware');
-const Student = require('../models/detailStudent.model'); // Adjust path if needed
-const { getStudentDashboard } = require('../controller/auth.controller');
+const detailStudentController = require('../controller/detailStudent.controller');
+const { detailStudentValidator } = require('../validators/student.validator');
+const validator = require('../middleware/validator.middleware');
 
-// GET /student/dashboard - Show student dashboard and details
-router.get('/dashboard', authenticateStudent, getStudentDashboard);
+// CRUD endpoints for detailStudent
+router.post('/detail', authenticateStudent, detailStudentValidator, validator, detailStudentController.createDetailStudent);
+router.get('/detail/:id', authenticateStudent, detailStudentController.getDetailStudentById);
+router.put('/detail/:id', authenticateStudent, detailStudentValidator, validator, detailStudentController.updateDetailStudent);
+router.delete('/detail/:id', authenticateStudent, detailStudentController.deleteDetailStudent);
+
+// Add more student-specific endpoints as needed
 
 module.exports = router;

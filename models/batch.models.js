@@ -36,7 +36,7 @@ const batchSchema = new Schema({
     },
     students: [{
         type: Schema.Types.ObjectId,
-        ref: 'User'
+        ref: 'DetailStudent'
     }],
     maxStudents: {
         type: Number,
