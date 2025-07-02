@@ -1,7 +1,8 @@
 const express = require('express');
+
 const authRoutes= require('./auth.routes');
-const teacherRoutes = require('./teacher.routes');
-const studentRoutes = require('./student.routes');
+const teacherRoutes = require('./teacher.route');
+const studentRoutes = require('./student.route');
 
 const router = express.Router();
 
