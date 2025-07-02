@@ -5,6 +5,7 @@ const speakeasy = require('speakeasy');
 const nodemailer = require('nodemailer');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
+const OTP_EXPIRY_MINUTES = parseInt(process.env.OTP_EXPIRY_MINUTES) || 1;
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
 
@@ -22,7 +23,7 @@ const generateOTP = () => {
   return speakeasy.totp({
     secret: speakeasy.generateSecret().base32,
     digits: 6,
-    step: 300 // 5 minutes expiry
+    step: OTP_EXPIRY_MINUTES * 60 // in 1 minute    
   });
 };
 
@@ -32,7 +33,7 @@ const sendEmailOTP = async (email, otp) => {
     from: EMAIL_USER,
     to: email,
     subject: 'Your OTP for Verification',
-    text: `Your OTP is: ${otp}. It will expire in 5 minutes.`
+    text: `Your OTP is: ${otp}. It will expire in ${OTP_EXPIRY_MINUTES} minute(s).`
   };
 
   await transporter.sendMail(mailOptions);
@@ -70,7 +71,7 @@ exports.register = async (req, res) => {
       do {
         newOTP = generateOTP();
       } while (newOTP === existingUnverifiedUser.otp);
-      const otpExpiry = new Date(Date.now() + 300000);
+      const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
       existingUnverifiedUser.otp = newOTP;
       existingUnverifiedUser.otpExpiry = otpExpiry;
       await existingUnverifiedUser.save();
@@ -91,7 +92,7 @@ exports.register = async (req, res) => {
     }
 
     const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + 300000);
+    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
     const user = new User({
       fullname,
@@ -182,7 +183,7 @@ exports.resendOTP = async (req, res) => {
     do {
       newOTP = generateOTP();
     } while (newOTP === user.otp);
-    const otpExpiry = new Date(Date.now() + 300000);
+    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
     user.otp = newOTP;
     user.otpExpiry = otpExpiry;
     await user.save();
@@ -209,9 +210,7 @@ exports.login = async (req, res) => {
 
     const user = await User.findOne({
       $or: [
-        { email: login },
-        { fullname: login },
-        { phone: login }
+        { email: login }                
       ]
     }).select('+password');
 
@@ -229,11 +228,23 @@ exports.login = async (req, res) => {
       });
     }
     if (!user.isVerified) {
-      return res.status(403).json({
+      // Generate and send new OTP
+      let newOTP;
+      do {
+        newOTP = generateOTP();
+      } while (newOTP === user.otp);
+      const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+      user.otp = newOTP;
+      user.otpExpiry = otpExpiry;
+      await user.save();
+      await sendEmailOTP(user.email, newOTP);
+
+      return res.status(200).json({
         success: false,
-        message: 'Please verify your email before logging in.'
+        message: 'Email is not verified. A new OTP has been sent to your email. Please verify to continue.'
       });
     }
+
     const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
     res.status(200).json({
       success: true,
@@ -263,7 +274,7 @@ exports.forgotPassword = async (req, res) => {
       });
     }
     const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + 300000);
+    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
     user.resetPasswordOTP = otp;
     user.resetPasswordExpires = otpExpiry;
     await user.save();
@@ -334,7 +345,7 @@ exports.resendPasswordResetOTP = async (req, res) => {
     do {
       newOTP = generateOTP();
     } while (newOTP === user.resetPasswordOTP);
-    const otpExpiry = new Date(Date.now() + 300000);
+    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
     user.resetPasswordOTP = newOTP;
     user.resetPasswordExpires = otpExpiry;
     await user.save();
