@@ -1,47 +1,56 @@
 const jwt = require('jsonwebtoken');
-const Teacher = require('../models/teacher.models');
-const Student = require('../models/student.models');
-const User = require('../models/User');
+const User = require('../models/user.models');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
-const requireAuth = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
-  const token = authHeader.split(' ')[1];
+// Unified authentication middleware
+const authenticate = (requiredRole = null) => async (req, res, next) => {
   try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'No token provided' 
+      });
+    }
+
+    const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    // Try User model first (for unified login)
-    let user = await User.findById(decoded.id);
-    if (user) {
-      req.user = user;
-      req.role = user.role;
-      return next();
+    // Find user in database
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Invalid token - user not found' 
+      });
     }
 
-    // Fallback: Try Teacher
-    user = await Teacher.findById(decoded.id);
-    if (user) {
-      req.teacher = user;
-      req.role = 'Teacher';
-      return next();
+    // Check if role is required and matches
+    if (requiredRole && user.role !== requiredRole) {
+      return res.status(403).json({ 
+        success: false,
+        message: `Access denied. Requires ${requiredRole} role` 
+      });
     }
 
-    // Fallback: Try Student
-    user = await Student.findById(decoded.id);
-    if (user) {
-      req.student = user;
-      req.role = 'Student';
-      return next();
-    }
-
-    return res.status(401).json({ error: 'Invalid token' });
+    // Attach user to request
+    req.user = user;
+    next();
   } catch (err) {
-    return res.status(401).json({ error: 'Invalid or expired token' });
+    return res.status(401).json({ 
+      success: false,
+      message: 'Invalid or expired token' 
+    });
   }
 };
 
-module.exports = { requireAuth };
+// Specific role middlewares
+const authenticateTeacher = authenticate('teacher');
+const authenticateStudent = authenticate('student');
+
+module.exports = {
+  authenticate,
+  authenticateTeacher,
+  authenticateStudent
+};
