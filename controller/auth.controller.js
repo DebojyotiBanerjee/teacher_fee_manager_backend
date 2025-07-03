@@ -260,10 +260,12 @@ exports.login = async (req, res) => {
       user: {
         id: user._id,
         fullname: user.fullname,
-        email: user.email,
+        email: user.email, 
+        role: user.role,
         isVerified: user.isVerified,
-      }
+      },      
     });
+
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({
