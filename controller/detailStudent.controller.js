@@ -51,17 +51,9 @@ exports.deleteDetailStudent = async (req, res) => {
   }
 };
 
-// Student Dashboard
-exports.getStudentDashboard = async (req, res) => {
-  try {
-    const student = await DetailStudent.findOne({ user: req.user.id })
-      .populate('enrolledBatches.batch');
-    if (!student) return res.status(404).json({ error: 'Student profile not found' });
-    res.json({
-      profile: student,
-      enrolledBatches: student.enrolledBatches
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+exports.studentDashboard = async (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Welcome to Student Dashboard'
+  });
 };

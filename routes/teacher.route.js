@@ -1,9 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateTeacher } = require('../middleware/role.middleware');
 const detailTeacherController = require('../controller/detailTeacher.controller');
 const { detailTeacherValidator } = require('../validators/teacher.validator');
 const validator = require('../middleware/validator.middleware');
+const { 
+  authenticate, 
+  authenticateTeacher
+} = require('../middleware/auth.middleware');
 
 /**
  * @swagger
@@ -16,8 +19,17 @@ const validator = require('../middleware/validator.middleware');
  *     responses:
  *       200:
  *         description: Teacher dashboard data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
  */
-router.get('/dashboard', authenticateTeacher);
+router.get('/dashboard', authenticate, authenticateTeacher, detailTeacherController.teacherDashboard);
 
 /**
  * @swagger
@@ -32,14 +44,14 @@ router.get('/dashboard', authenticateTeacher);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               user:
- *                 type: string
- *               # Add more fields here as needed, but do NOT use comments in YAML
+ *             $ref: '#/components/schemas/DetailTeacher'
  *     responses:
  *       201:
  *         description: Teacher detail created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DetailTeacher'
  */
 router.post('/detail', authenticateTeacher, detailTeacherValidator, validator, detailTeacherController.createDetailTeacher);
 
@@ -60,6 +72,10 @@ router.post('/detail', authenticateTeacher, detailTeacherValidator, validator, d
  *     responses:
  *       200:
  *         description: Teacher detail data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DetailTeacher'
  */
 router.get('/detail/:id', authenticateTeacher, detailTeacherController.getDetailTeacherById);
 
@@ -82,14 +98,14 @@ router.get('/detail/:id', authenticateTeacher, detailTeacherController.getDetail
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               user:
- *                 type: string
- *               // Add other fields as per your model
+ *             $ref: '#/components/schemas/DetailTeacher'
  *     responses:
  *       200:
  *         description: Teacher detail updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DetailTeacher'
  */
 router.put('/detail/:id', authenticateTeacher, detailTeacherValidator, validator, detailTeacherController.updateDetailTeacher);
 
@@ -110,6 +126,15 @@ router.put('/detail/:id', authenticateTeacher, detailTeacherValidator, validator
  *     responses:
  *       200:
  *         description: Teacher detail deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
  */
 router.delete('/detail/:id', authenticateTeacher, detailTeacherController.deleteDetailTeacher);
 

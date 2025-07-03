@@ -1,5 +1,12 @@
 const DetailTeacher = require('../models/detailTeacher.models');
 
+exports.teacherDashboard = async (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Welcome to Teacher Dashboard'
+  });
+};
+
 // Create a new detailTeacher
 exports.createDetailTeacher = async (req, res) => {
   try {

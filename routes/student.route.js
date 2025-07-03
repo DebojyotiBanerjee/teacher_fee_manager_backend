@@ -1,9 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateStudent } = require('../middleware/role.middleware');
 const detailStudentController = require('../controller/detailStudent.controller');
 const { detailStudentValidator } = require('../validators/student.validator');
 const validator = require('../middleware/validator.middleware');
+const { 
+  authenticate,   
+   authenticateStudent
+} = require('../middleware/auth.middleware');
 
 /**
  * @swagger
@@ -16,8 +19,17 @@ const validator = require('../middleware/validator.middleware');
  *     responses:
  *       200:
  *         description: Student dashboard data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
  */
-router.get('/dashboard', authenticateStudent, detailStudentController.getStudentDashboard);
+router.get('/dashboard', authenticate, authenticateStudent, detailStudentController.studentDashboard);
 
 /**
  * @swagger
@@ -32,14 +44,14 @@ router.get('/dashboard', authenticateStudent, detailStudentController.getStudent
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               user:
- *                 type: string
- *               # Add more fields here as needed, but do NOT use comments in YAML
+ *             $ref: '#/components/schemas/DetailStudent'
  *     responses:
  *       201:
  *         description: Student detail created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DetailStudent'
  */
 router.post('/detail', authenticateStudent, ...detailStudentValidator, validator, detailStudentController.createDetailStudent);
 
@@ -60,6 +72,10 @@ router.post('/detail', authenticateStudent, ...detailStudentValidator, validator
  *     responses:
  *       200:
  *         description: Student detail data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DetailStudent'
  */
 router.get('/detail/:id', authenticateStudent, detailStudentController.getDetailStudentById);
 
@@ -82,14 +98,14 @@ router.get('/detail/:id', authenticateStudent, detailStudentController.getDetail
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               user:
- *                 type: string
- *               # Add more fields here as needed, but do NOT use comments in YAML
+ *             $ref: '#/components/schemas/DetailStudent'
  *     responses:
  *       200:
  *         description: Student detail updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DetailStudent'
  */
 router.put('/detail/:id', authenticateStudent, ...detailStudentValidator, validator, detailStudentController.updateDetailStudent);
 
@@ -110,6 +126,15 @@ router.put('/detail/:id', authenticateStudent, ...detailStudentValidator, valida
  *     responses:
  *       200:
  *         description: Student detail deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
  */
 router.delete('/detail/:id', authenticateStudent, detailStudentController.deleteDetailStudent);
 

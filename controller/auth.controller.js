@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/user.models');
 const { validationResult } = require('express-validator');
-const speakeasy = require('speakeasy');
 const nodemailer = require('nodemailer');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
@@ -47,6 +46,17 @@ exports.register = async (req, res) => {
     }
 
     const { fullname, email, phone, password, confirmPassword, role, resend } = req.body;
+
+     // Validate role
+    const validRoles = ['student', 'teacher']; // Define valid roles here
+if (!validRoles.includes(role)) {
+  return res.status(400).json({
+    success: false,
+    message: 'Invalid role specified'
+  });
+}
+    
+
 
     if (password !== confirmPassword) {
       return res.status(400).json({
@@ -151,7 +161,8 @@ exports.verifyOTP = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Email verified successfully',
-      token
+      token,
+      role: user.role
     });
 
   } catch (err) {
@@ -245,7 +256,8 @@ exports.login = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Login successful',
-      token
+      token,
+      role: user.role
     });
 
   } catch (err) {

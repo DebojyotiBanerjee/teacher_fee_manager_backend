@@ -18,7 +18,7 @@ const app = express();
 // Swagger setup
 const specs = swaggerJsdoc({
   swaggerDefinition,
-  apis: ['./routes/*.js'], // Path to the API docs
+  apis: ['./routes/*.js','./models/*.js'], // Path to the API docs
 });
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
