@@ -257,9 +257,13 @@ exports.login = async (req, res) => {
       success: true,
       message: 'Login successful',
       token,
-      role: user.role
+      user: {
+        id: user._id,
+        fullname: user.fullname,
+        email: user.email,
+        isVerified: user.isVerified,
+      }
     });
-
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({

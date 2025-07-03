@@ -22,16 +22,46 @@ module.exports = {
     schemas: {
       User: {
         type: "object",
+        required: ["fullname", "email", "phone", "password", "role"],
         properties: {
-          fullname: { type: "string" },
-          email: { type: "string" },
-          phone: { type: "string" },
-          status: { type: "string", enum: ["online", "offline"] },
-          role: { type: "string", enum: ["teacher", "student"] },
-          isVerified: { type: "boolean" },
-          isActive: { type: "boolean" },
-          createdAt: { type: "string", format: "date-time" },
-          updatedAt: { type: "string", format: "date-time" },
+          fullname: { type: "string", example: "Your name" },
+          email: { type: "string", example: "abc@gmail.com" },
+          password: { type: "string", example: "password" },
+          phone: { type: "string", example: "phone number" },
+          status: {
+            type: "string",
+            enum: ["online", "offline"],
+            example: "offline",
+          },
+          role: {
+            type: "string",
+            enum: ["teacher", "student"],
+            example: "teacher",
+          },
+          isVerified: { type: "boolean", example: false },
+          isActive: { type: "boolean", example: true },
+          otp: { type: "string", example: "123456" },
+          otpExpiry: {
+            type: "string",
+            format: "date-time",
+            example: "2024-07-03T12:00:00.000Z",
+          },
+          resetPasswordOTP: { type: "string", example: "654321" },
+          resetPasswordExpires: {
+            type: "string",
+            format: "date-time",
+            example: "2024-07-03T12:30:00.000Z",
+          },
+          createdAt: {
+            type: "string",
+            format: "date-time",
+            example: "2024-07-03T11:00:00.000Z",
+          },
+          updatedAt: {
+            type: "string",
+            format: "date-time",
+            example: "2024-07-03T11:30:00.000Z",
+          },
         },
       },
       DetailTeacher: {
