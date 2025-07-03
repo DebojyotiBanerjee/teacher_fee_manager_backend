@@ -20,11 +20,7 @@ const transporter = nodemailer.createTransport({
 
 // Generate OTP
 const generateOTP = () => {
-  return speakeasy.totp({
-    secret: speakeasy.generateSecret().base32,
-    digits: 6,
-    step: OTP_EXPIRY_MINUTES * 60 // in 1 minute    
-  });
+  return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
 // Send OTP via Email
