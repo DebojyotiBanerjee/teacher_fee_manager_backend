@@ -1,6 +1,5 @@
 const DetailTeacher = require('../models/detailTeacher.models');
-const TeacherEnrollment = require('../models/batch.moddels');
-const DetailStudent = require('../models/detailStudent.model');
+const TeacherEnrollment = require('../models/batch.models');
 
 exports.teacherDashboard = async (req, res) => {
   res.status(200).json({

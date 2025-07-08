@@ -6,8 +6,7 @@ const detailTeacherSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true
-  },
-  
+  }, 
   qualifications: [{
     degree: {
       type: String,

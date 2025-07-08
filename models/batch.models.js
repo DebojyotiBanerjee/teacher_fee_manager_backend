@@ -26,7 +26,6 @@ const batchSchema = new Schema({
     },
     endDate: {
         type: Date,
-        required: true
     },
     time: {
         type: String, // e.g., "10:00 AM - 12:00 PM"
