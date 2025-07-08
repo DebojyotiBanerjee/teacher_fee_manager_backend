@@ -1,13 +1,11 @@
-const user = require('./user.models');
-const batch = require('./batch.models');
-const teacher = require('./teacher.models');
-const subject = require('./subject.models');
-const rating = require('./rating.models');
+const user = require('./user.models.js');
+const batchSchema = require('./batch.moddels.js');
+const teacher = require('./detailTeacher.models.js');
+const rating = require('./rating.models.js');
 
 module.exports = {
   user,
-  batch,
-  teacher,
-  subject,
+  batchSchema,
+  teacher,  
   rating
 };

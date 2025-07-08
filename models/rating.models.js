@@ -5,7 +5,7 @@ const ratingSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'DetailTeacher'
     },
-    batchId: {
+    batchName: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Batch'
     },

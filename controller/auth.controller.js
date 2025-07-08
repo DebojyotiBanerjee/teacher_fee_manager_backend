@@ -210,6 +210,13 @@ exports.resendOTP = async (req, res) => {
   }
 };
 
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+};
+
 // Login (with OTP, just JWT)
 exports.login = async (req, res) => {
   try {
@@ -253,10 +260,10 @@ exports.login = async (req, res) => {
     }
 
     const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
+    res.cookie('token', token, cookieOptions);
     res.status(200).json({
       success: true,
       message: 'Login successful',
-      token,
       user: {
         id: user._id,
         fullname: user.fullname,

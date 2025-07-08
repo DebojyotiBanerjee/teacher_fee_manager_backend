@@ -29,4 +29,53 @@ const detailTeacherValidator = [
   // Optionally add more validations for availability, socialMedia, etc.
 ];
 
-module.exports = { detailTeacherValidator };
+const batchValidator = [
+  body('subject')
+    .notEmpty().withMessage('Subject is required')
+    .isString().withMessage('Subject must be a string'),
+  body('batchName')
+    .notEmpty().withMessage('Batch name is required')
+    .isString().withMessage('Batch name must be a string'),
+  body('startDate')
+    .notEmpty().withMessage('Start date is required')
+    .isISO8601().withMessage('Start date must be a valid date'),
+  body('endDate')
+    .notEmpty().withMessage('End date is required')
+    .isISO8601().withMessage('End date must be a valid date'),
+  body('time')
+    .notEmpty().withMessage('Time is required')
+    .isString().withMessage('Time must be a string'),
+  body('maxStrength')
+    .notEmpty().withMessage('Max strength is required')
+    .isInt({ min: 1 }).withMessage('Max strength must be at least 1'),
+  body('mode')
+    .notEmpty().withMessage('Mode is required')
+    .isIn(['online', 'offline', 'hybrid']).withMessage('Mode must be online, offline, or hybrid'),
+  body('feePerStudent')
+    .notEmpty().withMessage('Fee per student is required')
+    .isFloat({ min: 0 }).withMessage('Fee per student must be a non-negative number'),
+  body('location')
+    .if(body('mode').not().equals('online'))
+    .notEmpty().withMessage('Location is required for offline/hybrid mode')
+    .isString().withMessage('Location must be a string'),
+  body('daysOfWeek')
+    .isArray({ min: 1 }).withMessage('Days of week must be a non-empty array'),
+  body('daysOfWeek.*')
+    .notEmpty().withMessage('Each day of week is required')
+    .isString().withMessage('Day of week must be a string'),
+  body('studentEligibilityCriteria')
+    .optional().isString().withMessage('Eligibility criteria must be a string'),
+  body('courseCategoryOrBoard')
+    .optional().isString().withMessage('Course category/board must be a string'),
+];
+
+const attendanceViewValidator = [
+  body('batchId')
+    .optional()
+    .isMongoId().withMessage('Batch ID must be a valid Mongo ID'),
+  body('date')
+    .optional()
+    .isISO8601().withMessage('Date must be a valid date'),
+];
+
+module.exports = { detailTeacherValidator, batchValidator, attendanceViewValidator };
