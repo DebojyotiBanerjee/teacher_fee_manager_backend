@@ -10,6 +10,6 @@ const router = express.Router();
 router.use('/auth', authRoutes);
 router.use('/teacher', teacherRoutes);
 router.use('/student', studentRoutes);
-router.use('/student-flow', studentFlowRoutes);
+router.use('/user', studentFlowRoutes);
 
 module.exports = router;
