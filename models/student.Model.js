@@ -26,10 +26,7 @@ const batchSchema = new Schema({
     required: true
   },
 
-  startDate: {
-    type: Date,
-    required: true
-  },
+  
 
   daysOfWeek: [{
     type: String,
