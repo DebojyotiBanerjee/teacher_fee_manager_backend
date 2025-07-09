@@ -24,9 +24,7 @@ const batchSchema = new Schema({
     type: String,
     enum: ['online', 'offline'],
     required: true
-  },
-
-  
+  }, 
 
   daysOfWeek: [{
     type: String,
