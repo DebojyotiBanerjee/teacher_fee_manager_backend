@@ -15,12 +15,12 @@ router.get('/dashboard', authenticate, authenticateTeacher, detailTeacherControl
 
 router.post('/detail', authenticateTeacher, detailTeacherValidator, validator, detailTeacherController.createDetailTeacher);
 
-router.get('/detail/:id', authenticateTeacher, detailTeacherController.getDetailTeacherById);
+router.get('/detail', authenticateTeacher, detailTeacherController.getDetailTeacherById);
 
-router.put('/detail/:id', authenticateTeacher, detailTeacherValidator, validator, detailTeacherController.updateDetailTeacher);
+router.put('/detail', authenticateTeacher, detailTeacherValidator, validator, detailTeacherController.updateDetailTeacher);
 
 
-router.delete('/detail/:id', authenticateTeacher, detailTeacherController.deleteDetailTeacher);
+router.delete('/detail', authenticateTeacher, detailTeacherController.deleteDetailTeacher);
 
 // Batch management routes (moved to teacherEnrollController)
 router.post('/batch', authenticate, authenticateTeacher, batchValidator, teacherEnrollController.createBatch);
