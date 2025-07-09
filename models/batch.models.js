@@ -60,7 +60,21 @@ const batchSchema = new Schema({
         enum: ['upcoming', 'ongoing', 'completed', 'cancelled'],
         default: 'upcoming'
     },
-    studentEligibilityCriteria: {
+    mode: {
+        type: String,
+        enum: ['online', 'offline', 'hybrid'],
+        default: 'offline'
+    },
+    requiresApproval: {
+        type: Boolean,
+        default: false
+    },
+    requiredLevel: {
+        type: String,
+        enum: ['primary', 'secondary', 'higher_secondary', 'undergraduate', 'postgraduate'],
+        required: false
+    },
+    description: {
         type: String,
         trim: true
     },
@@ -72,4 +86,12 @@ const batchSchema = new Schema({
     timestamps: true
 });
 
-module.exports = mongoose.model('bacth', batchSchema);
+// Indexes for better query performance
+batchSchema.index({ subject: 1 });
+batchSchema.index({ 'schedule.startDate': 1 });
+batchSchema.index({ status: 1 });
+batchSchema.index({ averageRating: -1 });
+batchSchema.index({ mode: 1 });
+batchSchema.index({ requiresApproval: 1 });
+
+module.exports = mongoose.model('Batch', batchSchema);

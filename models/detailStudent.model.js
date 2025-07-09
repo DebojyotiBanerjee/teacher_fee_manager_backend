@@ -129,10 +129,19 @@ const detailStudentSchema = new Schema({
         pincode: String,
         country: String
     },
-    ratings: [{
-        type: Schema.Types.ObjectId,
-        ref: 'Rating'
-    }],
+
+    // teacher available classes 
+    classPreferences: {
+        daysOfWeek: [{
+            type: String,
+            enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        }],
+        preferredTimeSlot: {
+            type: String,
+            enum: ['Morning', 'Afternoon', 'Evening'],
+            default: 'Evening'
+        }
+    },
     isProfileComplete: {
         type: Boolean,
         default: false
