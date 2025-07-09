@@ -13,9 +13,6 @@ exports.getAvailableBatches = async (req, res) => {
     if (req.query.teacher) filters.teacher = req.query.teacher;
     if (req.query.mode) filters.mode = req.query.mode; // online/offline mode
     
-
-    // Filter by start date range
-    
     
     // Filter by fee range
     if (req.query.minFee || req.query.maxFee) {
