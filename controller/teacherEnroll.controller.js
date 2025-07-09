@@ -1,4 +1,4 @@
-const TeacherEnrollment = require('../models/batch.moddels');
+const TeacherEnrollment = require('../models/batch.models');
 const Attendance = require('../models/attendance.models');
 
 // Middleware to check if user is a teacher

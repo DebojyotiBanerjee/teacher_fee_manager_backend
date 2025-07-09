@@ -9,10 +9,6 @@ const ratingSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Batch'
     },
-    subjectId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Subject'
-    },
     studentId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'DetailStudent',
@@ -31,7 +27,7 @@ const ratingSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['teacher', 'batch', 'subject'],
+        enum: ['teacher', 'batch'],
         required: true
     }
 }, {
@@ -49,11 +45,6 @@ ratingSchema.pre('save', function(next) {
         case 'batch':
             if (!this.batchId) {
                 return next(new Error('BatchId is required for batch ratings'));
-            }
-            break;
-        case 'subject':
-            if (!this.subjectId) {
-                return next(new Error('SubjectId is required for subject ratings'));
             }
             break;
         default:
