@@ -13,20 +13,9 @@ exports.getAvailableBatches = async (req, res) => {
     if (req.query.teacher) filters.teacher = req.query.teacher;
     if (req.query.mode) filters.mode = req.query.mode; // online/offline mode
     
-<<<<<<< HEAD
-<<<<<<< HEAD
-    
-=======
+
     // Filter by start date range
-    if (req.query.startDate || req.query.endDate) {
-      filters['schedule.startDate'] = {};
-      if (req.query.startDate) filters['schedule.startDate'].$gte = new Date(req.query.startDate);
-      if (req.query.endDate) filters['schedule.startDate'].$lte = new Date(req.query.endDate);
-    }
->>>>>>> af6bf79 (done-student-flow-filter)
-=======
     
->>>>>>> 05c8616 (refactor: remove start date filtering from getAvailableBatches function)
     
     // Filter by fee range
     if (req.query.minFee || req.query.maxFee) {
