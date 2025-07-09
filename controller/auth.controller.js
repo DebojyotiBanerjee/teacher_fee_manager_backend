@@ -8,6 +8,10 @@ const OTP_EXPIRY_MINUTES = parseInt(process.env.OTP_EXPIRY_MINUTES) || 1;
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
 
+// Token expiry settings from environment variables
+const ACCESS_TOKEN_EXPIRY_MS = Number(process.env.ACCESS_TOKEN_EXPIRY_MS) || 60 * 60 * 1000; // 1 hour default
+const REFRESH_TOKEN_EXPIRY_MS = Number(process.env.REFRESH_TOKEN_EXPIRY_MS) || 7 * 24 * 60 * 60 * 1000; // 7 days default
+
 // Email transporter
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -157,12 +161,34 @@ exports.verifyOTP = async (req, res) => {
     user.otp = undefined;
     user.otpExpiry = undefined;
     await user.save();
-    const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    
+    const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
+    const refreshToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      maxAge: ACCESS_TOKEN_EXPIRY_MS
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      maxAge: REFRESH_TOKEN_EXPIRY_MS
+    });
+
     res.status(200).json({
       success: true,
       message: 'Email verified successfully',
-      token,
-      role: user.role
+      user: {
+        id: user._id,
+        fullname: user.fullname,
+        email: user.email,
+        role: user.role,
+        isVerified: user.isVerified,
+      }
     });
 
   } catch (err) {
@@ -210,13 +236,6 @@ exports.resendOTP = async (req, res) => {
   }
 };
 
-const cookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
-  maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
-};
-
 // Login (with OTP, just JWT)
 exports.login = async (req, res) => {
   try {
@@ -259,8 +278,23 @@ exports.login = async (req, res) => {
       });
     }
 
-    const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
-    res.cookie('token', token, cookieOptions);
+    const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
+    const refreshToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      maxAge: ACCESS_TOKEN_EXPIRY_MS
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      maxAge: REFRESH_TOKEN_EXPIRY_MS
+    });
+
     res.status(200).json({
       success: true,
       message: 'Login successful',
@@ -278,6 +312,25 @@ exports.login = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error during login'
+    });
+  }
+};
+
+// Logout function to clear cookies
+exports.logout = async (req, res) => {
+  try {
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
+    
+    res.status(200).json({
+      success: true,
+      message: 'Logged out successfully'
+    });
+  } catch (err) {
+    console.error('Logout error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during logout'
     });
   }
 };
