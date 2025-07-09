@@ -165,10 +165,10 @@ exports.verifyOTP = async (req, res) => {
     user.otp = undefined;
     user.otpExpiry = undefined;
     await user.save();
-
+    
     const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
     const refreshToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-
+    
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -186,18 +186,9 @@ exports.verifyOTP = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Email verified successfully',
-      data: {
-        user: {          
-          fullname: user.fullname,
-          email: user.email,
-          role: user.role,
-          isVerified: user.isVerified,
-        },
-        isAuthenticated: true,
-        tokens: {
-          accessToken,
-          refreshToken
-        }
+      user: {        
+        role: user.role,
+        isVerified: user.isVerified,
       }
     });
 
@@ -291,7 +282,7 @@ exports.login = async (req, res) => {
 
     const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
     const refreshToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-
+    
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
