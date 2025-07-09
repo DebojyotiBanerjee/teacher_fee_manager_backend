@@ -24,12 +24,12 @@ router.delete('/detail/:id', authenticateTeacher, detailTeacherController.delete
 
 // Batch management routes (moved to teacherEnrollController)
 router.post('/batch', authenticate, authenticateTeacher, batchValidator, teacherEnrollController.createBatch);
-router.put('/batch/:id', authenticate, authenticateTeacher, batchValidator, teacherEnrollController.updateBatch);
-router.delete('/batch/:id', authenticate, authenticateTeacher, teacherEnrollController.deleteBatch);
-router.get('/batch/:id/students', authenticate, authenticateTeacher, teacherEnrollController.viewStudentsInBatch);
+router.put('/batch', authenticate, authenticateTeacher, batchValidator, teacherEnrollController.updateBatch);
+router.delete('/batch', authenticate, authenticateTeacher, teacherEnrollController.deleteBatch);
+router.get('/batch/students', authenticate, authenticateTeacher, teacherEnrollController.viewStudentsInBatch);
 
 // New routes for teacher batch and attendance management
 router.get('/batches', authenticate, authenticateTeacher, teacherEnrollController.viewMyBatches);
-router.get('/batch/:id/attendance', authenticate, authenticateTeacher, teacherEnrollController.viewBatchAttendance);
+router.get('/batch/attendance', authenticate, authenticateTeacher, teacherEnrollController.viewBatchAttendance);
 
 module.exports = router;

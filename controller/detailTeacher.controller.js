@@ -23,7 +23,7 @@ exports.createDetailTeacher = async (req, res) => {
 // Get detailTeacher by ID
 exports.getDetailTeacherById = async (req, res) => {
   try {
-    const detailTeacher = await DetailTeacher.findById(req.params.id).populate('user batches ratings');
+    const detailTeacher = await DetailTeacher.findById(req.user._id).populate('user batches ratings');
     if (!detailTeacher) return res.status(404).json({ error: 'Not found' });
     res.json(detailTeacher);
   } catch (err) {
@@ -34,7 +34,7 @@ exports.getDetailTeacherById = async (req, res) => {
 // Update detailTeacher
 exports.updateDetailTeacher = async (req, res) => {
   try {
-    const detailTeacher = await DetailTeacher.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const detailTeacher = await DetailTeacher.findByIdAndUpdate(req.user._id, req.body, { new: true });
     if (!detailTeacher) return res.status(404).json({ error: 'Not found' });
     res.json(detailTeacher);
   } catch (err) {
@@ -45,7 +45,7 @@ exports.updateDetailTeacher = async (req, res) => {
 // Delete detailTeacher
 exports.deleteDetailTeacher = async (req, res) => {
   try {
-    const detailTeacher = await DetailTeacher.findByIdAndDelete(req.params.id);
+    const detailTeacher = await DetailTeacher.findByIdAndDelete(req.user._id);
     if (!detailTeacher) return res.status(404).json({ error: 'Not found' });
     res.json({ message: 'Deleted successfully' });
   } catch (err) {
@@ -53,51 +53,3 @@ exports.deleteDetailTeacher = async (req, res) => {
   }
 };
 
-// Create a new batch (enrollment)
-exports.createBatch = async (req, res) => {
-  try {
-    const batchData = { ...req.body, teacher: req.user._id };
-    const batch = new TeacherEnrollment(batchData);
-    await batch.save();
-    res.status(201).json(batch);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-};
-
-// Update a batch
-exports.updateBatch = async (req, res) => {
-  try {
-    const batch = await TeacherEnrollment.findOneAndUpdate(
-      { _id: req.params.id, teacher: req.user._id },
-      req.body,
-      { new: true }
-    );
-    if (!batch) return res.status(404).json({ error: 'Batch not found or unauthorized' });
-    res.json(batch);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-};
-
-// Delete a batch
-exports.deleteBatch = async (req, res) => {
-  try {
-    const batch = await TeacherEnrollment.findOneAndDelete({ _id: req.params.id, teacher: req.user._id });
-    if (!batch) return res.status(404).json({ error: 'Batch not found or unauthorized' });
-    res.json({ message: 'Batch deleted successfully' });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-};
-
-// View students in a batch
-exports.viewStudentsInBatch = async (req, res) => {
-  try {
-    const batch = await TeacherEnrollment.findOne({ _id: req.params.id, teacher: req.user._id }).populate('students');
-    if (!batch) return res.status(404).json({ error: 'Batch not found or unauthorized' });
-    res.json({ students: batch.students });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-};

@@ -25,7 +25,7 @@ exports.createBatch = async (req, res) => {
 exports.updateBatch = async (req, res) => {
   try {
     const batch = await TeacherEnrollment.findOneAndUpdate(
-      { _id: req.params.id, teacher: req.user._id },
+      { teacher: req.user._id },
       req.body,
       { new: true }
     );
@@ -39,7 +39,7 @@ exports.updateBatch = async (req, res) => {
 // Delete a batch
 exports.deleteBatch = async (req, res) => {
   try {
-    const batch = await TeacherEnrollment.findOneAndDelete({ _id: req.params.id, teacher: req.user._id });
+    const batch = await TeacherEnrollment.findOneAndDelete({ teacher: req.user._id });
     if (!batch) return res.status(404).json({ error: 'Batch not found or unauthorized' });
     res.json({ message: 'Batch deleted successfully' });
   } catch (err) {
@@ -57,25 +57,24 @@ exports.viewMyBatches = [isTeacher, async (req, res) => {
   }
 }];
 
-// View students in a batch (already present, but add teacher check)
+// View students in all batches for the logged-in teacher
 exports.viewStudentsInBatch = [isTeacher, async (req, res) => {
   try {
-    const batch = await TeacherEnrollment.findOne({ _id: req.params.id, teacher: req.user._id }).populate('students');
-    if (!batch) return res.status(404).json({ error: 'Batch not found or unauthorized' });
-    res.json({ students: batch.students });
+    const batches = await TeacherEnrollment.find({ teacher: req.user._id }).populate('students');
+    const students = batches.flatMap(batch => batch.students);
+    res.json({ students });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 }];
 
-// View attendance for a batch
+// View attendance for all batches for the logged-in teacher
 exports.viewBatchAttendance = [isTeacher, async (req, res) => {
   try {
-    const batchId = req.params.id;
-    // Confirm teacher owns the batch
-    const batch = await TeacherEnrollment.findOne({ _id: batchId, teacher: req.user._id });
-    if (!batch) return res.status(404).json({ error: 'Batch not found or unauthorized' });
-    const attendanceRecords = await Attendance.find({ batch: batchId }).populate('student', 'fullname email');
+    // Find all batches for the teacher
+    const batches = await TeacherEnrollment.find({ teacher: req.user._id });
+    const batchIds = batches.map(batch => batch._id);
+    const attendanceRecords = await Attendance.find({ batch: { $in: batchIds } }).populate('student', 'fullname email');
     res.json({ attendance: attendanceRecords });
   } catch (err) {
     res.status(400).json({ error: err.message });
