@@ -6,15 +6,28 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 // Unified authentication middleware
 const authenticate = (requiredRole = null) => async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Try to get token from cookies first, then from Authorization header as fallback
+    let token = req.cookies.accessToken;
+    
+    if (!token) {
+      // Fallback to Authorization header
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ 
+          success: false,
+          message: 'No token provided' 
+        });
+      }
+      token = authHeader.split(' ')[1];
+    }
+
+    if (!token) {
       return res.status(401).json({ 
         success: false,
-        message: 'No token provided' 
+        message: 'Access token is required' 
       });
     }
 
-    const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET);
 
     // Find user in database
@@ -23,6 +36,14 @@ const authenticate = (requiredRole = null) => async (req, res, next) => {
       return res.status(401).json({ 
         success: false,
         message: 'Invalid token - user not found' 
+      });
+    }
+
+    // Check if user is verified
+    if (!user.isVerified) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'User account not verified' 
       });
     }
 
@@ -38,9 +59,25 @@ const authenticate = (requiredRole = null) => async (req, res, next) => {
     req.user = user;
     next();
   } catch (err) {
+    console.error('Authentication error:', err.message);
+    
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Token expired' 
+      });
+    }
+    
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Invalid token' 
+      });
+    }
+    
     return res.status(401).json({ 
       success: false,
-      message: 'Invalid or expired token' 
+      message: 'Authentication failed' 
     });
   }
 };

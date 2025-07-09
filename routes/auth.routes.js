@@ -40,6 +40,6 @@ router.post('/resend-otp', resendOTPValidator, validator, authController.resendO
  
 router.post('/resend-password-reset-otp', resendPasswordResetOTPValidator, validator, authController.resendPasswordResetOTP);
 
-
+router.post('/logout', authController.logout);
 
 module.exports = router;
