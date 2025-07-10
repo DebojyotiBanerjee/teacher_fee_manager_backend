@@ -338,13 +338,23 @@ exports.logout = async (req, res) => {
     
     res.status(200).json({
       success: true,
-      message: 'Logged out successfully'
+      message: 'Logged out successfully',
+      data: {
+        isAuthenticated: false,
+        user: null,
+        tokens: null
+      }
     });
   } catch (err) {
     console.error('Logout error:', err);
     res.status(500).json({
       success: false,
-      message: 'Server error during logout'
+      message: 'Server error during logout',
+      data: {
+        isAuthenticated: false,
+        user: null,
+        tokens: null
+      }
     });
   }
 };
