@@ -90,10 +90,7 @@ exports.register = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: 'New OTP sent to your email',
-        data: {
-          email
-          
-        }
+        data: { email }
       });
     }
 
