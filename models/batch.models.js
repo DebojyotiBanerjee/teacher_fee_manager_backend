@@ -2,81 +2,74 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const batchSchema = new Schema({
-    name: {
+    teacher: {
+         type: Schema.Types.ObjectId,
+          ref: 'User',
+           required: true
+         },
+    students: [{
+         type: mongoose.Schema.Types.ObjectId,
+          ref: 'User' }],
+    subject: {
         type: String,
         required: true,
         trim: true
     },
-    teacher: {
-        type: Schema.Types.ObjectId,
-        ref: 'DetailTeacher',
-        required: true
-    },
-    subject: {
+    batchName: {
         type: String,
+        required: true,
+        trim: true
+    },
+    startDate: {
+        type: Date,
         required: true
     },
-    schedule: {
-        startDate: {
-            type: Date,
-            required: true
-        },
-        endDate: {
-            type: Date,
-            required: true
-        },
-        time: {
-            start: String,
-            end: String
-        },
-        days: [{
-            type: String,
-            enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-        }]
+    endDate: {
+        type: Date,
     },
-    students: [{
-        type: Schema.Types.ObjectId,
-        ref: 'DetailStudent'
-    }],
-    maxStudents: {
-        type: Number,
+    time: {
+        type: String, // e.g., "10:00 AM - 12:00 PM"
         required: true
     },
-    fee: {
+    maxStrength: {
         type: Number,
+        required: true,
+        min: 1
+    },
+    mode: {
+        type: String,
+        enum: ['online', 'offline', 'hybrid'],
         required: true
     },
-    ratings: [{
-        type: Schema.Types.ObjectId,
-        ref: 'Rating'
-    }],
-    averageRating: {
+    feePerStudent: {
         type: Number,
-        default: 0,
-        min: 0,
-        max: 5
+        required: true,
+        min: 0
     },
-    totalRatings: {
-        type: Number,
-        default: 0
+    location: {
+        type: String,
+        required: function () { return this.mode !== 'online'; }, // Required if not online
+        trim: true
     },
-    status: {
+    daysOfWeek: {
+        type: [String], // e.g., ['Monday', 'Wednesday', 'Friday']
+        required: true
+    },
+    batchStatus: {
         type: String,
         enum: ['upcoming', 'ongoing', 'completed', 'cancelled'],
         default: 'upcoming'
     },
-    description: {
+    studentEligibilityCriteria: {
         type: String,
-        maxlength: 1000
+        trim: true
+    },
+    courseCategoryOrBoard: {
+        type: String,
+        trim: true
     }
 }, {
     timestamps: true
 });
 
-// Indexes for better query performance
-batchSchema.index({ subject: 1 });
-batchSchema.index({ 'schedule.startDate': 1 });
-batchSchema.index({ status: 1 });
-batchSchema.index({ averageRating: -1 });
-
-module.exports = mongoose.model('Batch', batchSchema);
+module.exports = mongoose.model('bacth', batchSchema);

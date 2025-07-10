@@ -1,194 +1,24 @@
-module.exports = {
-  openapi: "3.0.0",
+const swaggerAutogen = require('swagger-autogen')({openapi: '3.0.0'});
+
+const doc = {
   info: {
-    title: "Teacher Fee Manager API",
-    version: "1.0.0",
-    description: "API documentation for the Teacher Fee Manager backend",
+    title: 'EduRuz API',
+    description: 'API Documentation for the EduRuz Learning Platform'
   },
-  servers: [
-    {
-      url: "http://localhost:8080",
-      description: "Local server",
-    },
-  ],
-  components: {
-    securitySchemes: {
-      bearerAuth: {
-        type: "http",
-        scheme: "bearer",
-        bearerFormat: "JWT",
-      },
-    },
-    schemas: {
-      User: {
-        type: "object",
-        required: ["fullname", "email", "phone", "password", "role"],
-        properties: {
-          fullname: { type: "string", example: "Your name" },
-          email: { type: "string", example: "abc@gmail.com" },
-          password: { type: "string", example: "password" },
-          phone: { type: "string", example: "phone number" },
-          status: {
-            type: "string",
-            enum: ["online", "offline"],
-            example: "offline",
-          },
-          role: {
-            type: "string",
-            enum: ["teacher", "student"],
-            example: "teacher",
-          },
-          isVerified: { type: "boolean", example: false },
-          isActive: { type: "boolean", example: true },
-          otp: { type: "string", example: "123456" },
-          otpExpiry: {
-            type: "string",
-            format: "date-time",
-            example: "2024-07-03T12:00:00.000Z",
-          },
-          resetPasswordOTP: { type: "string", example: "654321" },
-          resetPasswordExpires: {
-            type: "string",
-            format: "date-time",
-            example: "2024-07-03T12:30:00.000Z",
-          },
-          createdAt: {
-            type: "string",
-            format: "date-time",
-            example: "2024-07-03T11:00:00.000Z",
-          },
-          updatedAt: {
-            type: "string",
-            format: "date-time",
-            example: "2024-07-03T11:30:00.000Z",
-          },
-        },
-      },
-      DetailTeacher: {
-        type: "object",
-        properties: {
-          _id: { type: "string" },
-          user: { $ref: "#/components/schemas/User" },
-          qualifications: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                degree: { type: "string" },
-                institution: { type: "string" },
-                yearCompleted: { type: "integer" },
-              },
-            },
-          },
-          experience: {
-            type: "object",
-            properties: {
-              years: { type: "integer" },
-              previousInstitutions: {
-                type: "array",
-                items: { type: "string" },
-              },
-            },
-          },
-          bio: { type: "string" },
-          subjectsTaught: { type: "array", items: { type: "string" } },
-          availability: { type: "object" },
-          socialMedia: { type: "object" },
-          batches: { type: "array", items: { type: "string" } },
-          ratings: { type: "array", items: { type: "string" } },
-          averageRating: { type: "number" },
-          totalRatings: { type: "integer" },
-          isProfileComplete: { type: "boolean" },
-          createdAt: { type: "string", format: "date-time" },
-          updatedAt: { type: "string", format: "date-time" },
-        },
-      },
-      DetailStudent: {
-        type: "object",
-        properties: {
-          _id: { type: "string" },
-          user: { $ref: "#/components/schemas/User" },
-          education: {
-            type: "object",
-            properties: {
-              currentLevel: { type: "string" },
-              institution: { type: "string" },
-              grade: { type: "string" },
-              yearOfStudy: { type: "integer" },
-              board: { type: "string" },
-            },
-          },
-          subjects: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                subject: { type: "string" },
-                proficiencyLevel: {
-                  type: "string",
-                  enum: ["beginner", "intermediate", "advanced"],
-                },
-                targetScore: { type: "number" },
-                currentScore: { type: "number" },
-              },
-            },
-          },
-          enrolledBatches: { type: "array", items: { type: "string" } },
-          academicPerformance: { type: "object" },
-          guardian: { type: "object" },
-          address: { type: "object" },
-          ratings: { type: "array", items: { type: "string" } },
-          isProfileComplete: { type: "boolean" },
-          createdAt: { type: "string", format: "date-time" },
-          updatedAt: { type: "string", format: "date-time" },
-        },
-      },
-      Batch: {
-        type: "object",
-        properties: {
-          _id: { type: "string" },
-          name: { type: "string" },
-          teacher: { type: "string" },
-          subject: { type: "string" },
-          schedule: { type: "object" },
-          students: { type: "array", items: { type: "string" } },
-          maxStudents: { type: "integer" },
-          fee: { type: "number" },
-          ratings: { type: "array", items: { type: "string" } },
-          averageRating: { type: "number" },
-          totalRatings: { type: "integer" },
-          status: {
-            type: "string",
-            enum: ["upcoming", "ongoing", "completed", "cancelled"],
-          },
-          description: { type: "string" },
-          createdAt: { type: "string", format: "date-time" },
-          updatedAt: { type: "string", format: "date-time" },
-        },
-      },
-      Rating: {
-        type: "object",
-        properties: {
-          _id: { type: "string" },
-          teacherId: { type: "string" },
-          batchId: { type: "string" },
-          subjectId: { type: "string" },
-          studentId: { type: "string" },
-          rating: { type: "number", minimum: 1, maximum: 5 },
-          comment: { type: "string" },
-          type: { type: "string", enum: ["teacher", "batch", "subject"] },
-          createdAt: { type: "string", format: "date-time" },
-          updatedAt: { type: "string", format: "date-time" },
-        },
-      },
-    },
-  },
-  security: [{ bearerAuth: [] }],
-  tags: [
-    { name: "Auth", description: "Authentication routes" },
-    { name: "Teacher", description: "Teacher routes" },
-    { name: "Student", description: "Student routes" },
-    { name: "Batch", description: "Batch routes" },
-    { name: "Rating", description: "Rating routes" },
-  ],
+  host: 'localhost:8080',
+  securityDefinitions:{
+    bearerAuth: {
+      type: 'http',
+      name: 'Authorization',
+      scheme: 'bearer',
+      in: 'header',
+      bearerFormat: 'JWT',
+      description: 'Enter JWT Bearer token **_only_**'
+    }
+  }
 };
+
+const outputFile = './docs/swagger-output.json';
+const routes = ['./routes/index.routes.js'];
+
+swaggerAutogen(outputFile, routes, doc);

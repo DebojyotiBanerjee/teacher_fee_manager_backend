@@ -1,4 +1,5 @@
 const DetailTeacher = require('../models/detailTeacher.models');
+const TeacherEnrollment = require('../models/batch.models');
 
 exports.teacherDashboard = async (req, res) => {
   res.status(200).json({
@@ -21,7 +22,7 @@ exports.createDetailTeacher = async (req, res) => {
 // Get detailTeacher by ID
 exports.getDetailTeacherById = async (req, res) => {
   try {
-    const detailTeacher = await DetailTeacher.findById(req.params.id).populate('user batches ratings');
+    const detailTeacher = await DetailTeacher.findById(req.user._id).populate('user batches ratings');
     if (!detailTeacher) return res.status(404).json({ error: 'Not found' });
     res.json(detailTeacher);
   } catch (err) {
@@ -32,7 +33,7 @@ exports.getDetailTeacherById = async (req, res) => {
 // Update detailTeacher
 exports.updateDetailTeacher = async (req, res) => {
   try {
-    const detailTeacher = await DetailTeacher.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const detailTeacher = await DetailTeacher.findByIdAndUpdate(req.user._id, req.body, { new: true });
     if (!detailTeacher) return res.status(404).json({ error: 'Not found' });
     res.json(detailTeacher);
   } catch (err) {
@@ -43,10 +44,11 @@ exports.updateDetailTeacher = async (req, res) => {
 // Delete detailTeacher
 exports.deleteDetailTeacher = async (req, res) => {
   try {
-    const detailTeacher = await DetailTeacher.findByIdAndDelete(req.params.id);
+    const detailTeacher = await DetailTeacher.findByIdAndDelete(req.user._id);
     if (!detailTeacher) return res.status(404).json({ error: 'Not found' });
     res.json({ message: 'Deleted successfully' });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 };
+
