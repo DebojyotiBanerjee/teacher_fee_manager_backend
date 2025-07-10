@@ -5,7 +5,7 @@ const { detailStudentValidator } = require('../validators/student.validator');
 const validator = require('../middleware/validator.middleware');
 const { 
   authenticate,   
-   authenticateStudent
+  authenticateStudent
 } = require('../middleware/auth.middleware');
 
 router.get('/dashboard', authenticate, authenticateStudent, detailStudentController.studentDashboard);
