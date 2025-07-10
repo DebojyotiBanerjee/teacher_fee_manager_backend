@@ -41,12 +41,13 @@ router.post('/resend-otp', resendOTPValidator, validator, authController.resendO
  
 router.post('/resend-password-reset-otp', resendPasswordResetOTPValidator, validator, authController.resendPasswordResetOTP);
 
-router.post('/logout', authController.logout);
-
 // Get current user session
 router.get('/me', authenticate(), authController.getCurrentUser);
 
 // Refresh access and refresh tokens
 router.post('/refresh-token', authController.refreshToken);
+
+// Logout
+router.post('/logout', authController.logout);
 
 module.exports = router;
