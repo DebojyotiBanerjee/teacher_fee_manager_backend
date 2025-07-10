@@ -45,6 +45,7 @@ exports.register = async (req, res) => {
     if (!errors.isEmpty()) {
       return res.status(400).json({ 
         success: false,
+        message: 'Validation failed',
         errors: errors.array()
       });
     }
@@ -89,7 +90,7 @@ if (!validRoles.includes(role)) {
       return res.status(200).json({
         success: true,
         message: 'New OTP sent to your email',
-        email
+        data: { email }
       });
     }
 
@@ -120,7 +121,7 @@ if (!validRoles.includes(role)) {
     res.status(200).json({
       success: true,
       message: 'OTP sent to your email. Please verify to complete registration.',
-      email
+      data: { email }
     });
 
   } catch (err) {
@@ -148,7 +149,7 @@ exports.verifyOTP = async (req, res) => {
       return res.status(401).json({
         success: false,
         message: 'OTP expired. Please request a new one.',
-        isExpired: true
+        data: { isExpired: true }
       });
     }
     if (otp !== user.otp) {
@@ -182,12 +183,18 @@ exports.verifyOTP = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Email verified successfully',
-      user: {
-        id: user._id,
-        fullname: user.fullname,
-        email: user.email,
-        role: user.role,
-        isVerified: user.isVerified,
+      data: {
+        user: {
+          fullname: user.fullname,
+          email: user.email,
+          role: user.role,
+          isVerified: user.isVerified,
+        },
+        isAuthenticated: true,
+        tokens: {
+          accessToken,
+          refreshToken
+        }
       }
     });
 
@@ -224,7 +231,7 @@ exports.resendOTP = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'New OTP sent to your email',
-      email
+      data: { email }
     });
 
   } catch (err) {
@@ -274,7 +281,8 @@ exports.login = async (req, res) => {
 
       return res.status(200).json({
         success: false,
-        message: 'Email is not verified. A new OTP has been sent to your email. Please verify to continue.'
+        message: 'Email is not verified. A new OTP has been sent to your email. Please verify to continue.',
+        data: { email: user.email }
       });
     }
 
@@ -298,13 +306,19 @@ exports.login = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Login successful',
-      user: {
-        id: user._id,
-        fullname: user.fullname,
-        email: user.email, 
-        role: user.role,
-        isVerified: user.isVerified,
-      },      
+      data: {
+        user: {
+          fullname: user.fullname,
+          email: user.email, 
+          role: user.role,
+          isVerified: user.isVerified,
+        },
+        isAuthenticated: true,
+        tokens: {
+          accessToken,
+          refreshToken
+        }
+      }
     });
 
   } catch (err) {
@@ -324,13 +338,23 @@ exports.logout = async (req, res) => {
     
     res.status(200).json({
       success: true,
-      message: 'Logged out successfully'
+      message: 'Logged out successfully',
+      data: {
+        isAuthenticated: false,
+        user: null,
+        tokens: null
+      }
     });
   } catch (err) {
     console.error('Logout error:', err);
     res.status(500).json({
       success: false,
-      message: 'Server error during logout'
+      message: 'Server error during logout',
+      data: {
+        isAuthenticated: false,
+        user: null,
+        tokens: null
+      }
     });
   }
 };
@@ -478,6 +502,91 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error during password reset'
+    });
+  }
+};
+
+// Get current authenticated user
+exports.getCurrentUser = async (req, res) => {
+  try {
+    // req.user is set by authenticate middleware
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authenticated',
+        data: {
+          isAuthenticated: false,
+          user: null
+        }
+      });
+    }
+    const { fullname, email, role, isVerified } = req.user;
+    res.status(200).json({
+      success: true,
+      message: 'User authenticated',
+      data: {
+        user: { fullname, email, role, isVerified },
+        isAuthenticated: true
+      }
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching user info'
+    });
+  }
+};
+
+// Refresh access and refresh tokens
+exports.refreshToken = async (req, res) => {
+  try {
+    let refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+      // Fallback to Authorization header
+      const authHeader = req.headers['authorization'];
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        refreshToken = authHeader.split(' ')[1];
+      }
+    }
+    if (!refreshToken) {
+      return res.status(401).json({
+        success: false,
+        message: 'Refresh token required'
+      });
+    }
+    let decoded;
+    try {
+      decoded = jwt.verify(refreshToken, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid or expired refresh token'
+      });
+    }
+    // Issue new tokens using the same payload from the valid refresh token
+    const newAccessToken = jwt.sign({ id: decoded.id, role: decoded.role }, JWT_SECRET, { expiresIn: '1h' });
+    const newRefreshToken = jwt.sign({ id: decoded.id, role: decoded.role }, JWT_SECRET, { expiresIn: '7d' });
+    res.cookie('accessToken', newAccessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Lax',
+      maxAge: ACCESS_TOKEN_EXPIRY_MS
+    });
+    res.cookie('refreshToken', newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Lax',
+      maxAge: REFRESH_TOKEN_EXPIRY_MS
+    });
+    res.status(200).json({
+      success: true,
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error during token refresh'
     });
   }
 };

@@ -15,9 +15,14 @@ connectDB();
 
 const app = express();
 
+const corsOptions = {
+  origin: "http://localhost:5173", // Frontend URL
+  credentials: true, // Allow cookies and credentials
+  
+};
 
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(bodyParser.json());  
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());

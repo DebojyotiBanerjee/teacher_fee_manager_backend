@@ -12,6 +12,7 @@ const {
   resendPasswordResetOTPValidator
 } = require('../validators/auth.validators');
 const validator = require('../middleware/validator.middleware');
+const { authenticate } = require('../middleware/auth.middleware');
 
 
 router.post('/register', registerValidator, validator, authController.register);
@@ -40,6 +41,13 @@ router.post('/resend-otp', resendOTPValidator, validator, authController.resendO
  
 router.post('/resend-password-reset-otp', resendPasswordResetOTPValidator, validator, authController.resendPasswordResetOTP);
 
+// Get current user session
+router.get('/me', authenticate(), authController.getCurrentUser);
+
+// Refresh access and refresh tokens
+router.post('/refresh-token', authController.refreshToken);
+
+// Logout
 router.post('/logout', authController.logout);
 
 module.exports = router;
