@@ -50,14 +50,4 @@ router.post('/refresh-token', authController.refreshToken);
 // Logout
 router.post('/logout', authController.logout);
 
-<<<<<<< HEAD
 module.exports = router;
-=======
-// Get current user session
-router.get('/me', authenticate(), authController.getCurrentUser);
-
-// Refresh access and refresh tokens
-router.post('/refresh-token', authController.refreshToken);
-
-module.exports = router;
->>>>>>> 996025b (feat: add user session management with current user retrieval and token refresh functionality; improve response structure for authentication endpoints)
