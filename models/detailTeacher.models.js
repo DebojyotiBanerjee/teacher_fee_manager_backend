@@ -1,12 +1,7 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
-const detailTeacherSchema = new Schema({
-  user: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  }, 
+const detailTeacherSchema = new Schema({   
   qualifications: [{
     degree: {
       type: String,
