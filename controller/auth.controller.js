@@ -4,7 +4,7 @@ const { validationResult } = require('express-validator');
 const nodemailer = require('nodemailer');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
-const OTP_EXPIRY_MINUTES = parseInt(process.env.OTP_EXPIRY_MINUTES) || 1;
+const OTP_EXPIRY_MINUTES = parseInt(process.env.OTP_EXPIRY_MINUTES) || 5;
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
 
@@ -43,7 +43,7 @@ exports.register = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
         message: 'Validation failed',
         errors: errors.array()
@@ -52,15 +52,15 @@ exports.register = async (req, res) => {
 
     const { fullname, email, phone, password, confirmPassword, role, resend } = req.body;
 
-     // Validate role
+    // Validate role
     const validRoles = ['student', 'teacher']; // Define valid roles here
-if (!validRoles.includes(role)) {
-  return res.status(400).json({
-    success: false,
-    message: 'Invalid role specified'
-  });
-}
-    
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid role specified'
+      });
+    }
+
 
 
     if (password !== confirmPassword) {
@@ -82,7 +82,7 @@ if (!validRoles.includes(role)) {
       do {
         newOTP = generateOTP();
       } while (newOTP === existingUnverifiedUser.otp);
-      const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+      const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES + 5 * 60 * 1000);
       existingUnverifiedUser.otp = newOTP;
       existingUnverifiedUser.otpExpiry = otpExpiry;
       await existingUnverifiedUser.save();
@@ -90,7 +90,10 @@ if (!validRoles.includes(role)) {
       return res.status(200).json({
         success: true,
         message: 'New OTP sent to your email',
-        data: { email }
+        data: {
+          email
+          
+        }
       });
     }
 
@@ -103,7 +106,7 @@ if (!validRoles.includes(role)) {
     }
 
     const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES + 5 * 60 * 1000);
 
     const user = new User({
       fullname,
@@ -162,10 +165,10 @@ exports.verifyOTP = async (req, res) => {
     user.otp = undefined;
     user.otpExpiry = undefined;
     await user.save();
-    
+
     const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
     const refreshToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-    
+
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -184,7 +187,7 @@ exports.verifyOTP = async (req, res) => {
       success: true,
       message: 'Email verified successfully',
       data: {
-        user: {
+        user: {          
           fullname: user.fullname,
           email: user.email,
           role: user.role,
@@ -223,7 +226,7 @@ exports.resendOTP = async (req, res) => {
     do {
       newOTP = generateOTP();
     } while (newOTP === user.otp);
-    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES + 5 * 60 * 1000);
     user.otp = newOTP;
     user.otpExpiry = otpExpiry;
     await user.save();
@@ -250,7 +253,7 @@ exports.login = async (req, res) => {
 
     const user = await User.findOne({
       $or: [
-        { email: login }                
+        { email: login }
       ]
     }).select('+password');
 
@@ -273,7 +276,7 @@ exports.login = async (req, res) => {
       do {
         newOTP = generateOTP();
       } while (newOTP === user.otp);
-      const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+      const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES + 5 * 60 * 1000);
       user.otp = newOTP;
       user.otpExpiry = otpExpiry;
       await user.save();
@@ -288,7 +291,7 @@ exports.login = async (req, res) => {
 
     const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
     const refreshToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-    
+
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -307,11 +310,8 @@ exports.login = async (req, res) => {
       success: true,
       message: 'Login successful',
       data: {
-        user: {
-          fullname: user.fullname,
-          email: user.email, 
+        user: {         
           role: user.role,
-          isVerified: user.isVerified,
         },
         isAuthenticated: true,
         tokens: {
@@ -335,7 +335,7 @@ exports.logout = async (req, res) => {
   try {
     res.clearCookie("accessToken");
     res.clearCookie("refreshToken");
-    
+
     res.status(200).json({
       success: true,
       message: 'Logged out successfully',
@@ -372,7 +372,7 @@ exports.forgotPassword = async (req, res) => {
       });
     }
     const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES + 5 * 60 * 1000);
     user.resetPasswordOTP = otp;
     user.resetPasswordExpires = otpExpiry;
     await user.save();
@@ -443,7 +443,7 @@ exports.resendPasswordResetOTP = async (req, res) => {
     do {
       newOTP = generateOTP();
     } while (newOTP === user.resetPasswordOTP);
-    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES + 5 * 60 * 1000);
     user.resetPasswordOTP = newOTP;
     user.resetPasswordExpires = otpExpiry;
     await user.save();
