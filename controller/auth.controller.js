@@ -298,8 +298,16 @@ exports.login = async (req, res) => {
       success: true,
       message: 'Login successful',
       data: {
+<<<<<<< HEAD
         user: {         
           role: user.role,
+=======
+        user: {
+          fullname: user.fullname,
+          email: user.email, 
+          role: user.role,
+          isVerified: user.isVerified,
+>>>>>>> 996025b (feat: add user session management with current user retrieval and token refresh functionality; improve response structure for authentication endpoints)
         },
         isAuthenticated: true,
         tokens: {
