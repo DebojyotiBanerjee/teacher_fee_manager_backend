@@ -50,4 +50,11 @@ router.post('/refresh-token', authController.refreshToken);
 // Logout
 router.post('/logout', authController.logout);
 
+// Get current user session
+router.get('/me', authenticate(), authController.getCurrentUser);
+
+// Refresh access and refresh tokens
+router.post('/refresh-token', authController.refreshToken);
+
 module.exports = router;
+

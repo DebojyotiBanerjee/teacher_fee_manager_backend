@@ -26,10 +26,44 @@ const detailTeacherValidator = [
   body('subjectsTaught.*')
     .notEmpty().withMessage('Each subject taught is required')
     .isString().withMessage('Subject taught must be a string'),
-  // Optionally add more validations for availability, socialMedia, etc.
+  // Availability validation (optional, basic structure)
+  body('availability')
+    .optional().isObject().withMessage('Availability must be an object'),
+  body('availability.monday')
+    .optional().isArray().withMessage('Monday availability must be an array'),
+  body('availability.tuesday')
+    .optional().isArray().withMessage('Tuesday availability must be an array'),
+  body('availability.wednesday')
+    .optional().isArray().withMessage('Wednesday availability must be an array'),
+  body('availability.thursday')
+    .optional().isArray().withMessage('Thursday availability must be an array'),
+  body('availability.friday')
+    .optional().isArray().withMessage('Friday availability must be an array'),
+  body('availability.saturday')
+    .optional().isArray().withMessage('Saturday availability must be an array'),
+  body('availability.sunday')
+    .optional().isArray().withMessage('Sunday availability must be an array'),
+  // Social media validation (optional, only LinkedIn present in schema)
+  body('socialMedia')
+    .optional().isObject().withMessage('Social media must be an object'),
+  body('socialMedia.linkedIn')
+    .optional().isString().withMessage('LinkedIn must be a string'),
 ];
 
 const batchValidator = [
+  body('teacher')
+    .notEmpty().withMessage('Teacher is required')
+    .isMongoId().withMessage('Teacher must be a valid Mongo ID'),
+  body('teacherFullName')
+    .notEmpty().withMessage('Teacher full name is required')
+    .isMongoId().withMessage('Teacher full name must be a valid Mongo ID'),
+  body('teacherDetailId')
+    .notEmpty().withMessage('Teacher detail ID is required')
+    .isMongoId().withMessage('Teacher detail ID must be a valid Mongo ID'),
+  body('students')
+    .optional().isArray().withMessage('Students must be an array'),
+  body('students.*')
+    .optional().isMongoId().withMessage('Each student must be a valid Mongo ID'),
   body('subject')
     .notEmpty().withMessage('Subject is required')
     .isString().withMessage('Subject must be a string'),
@@ -40,8 +74,7 @@ const batchValidator = [
     .notEmpty().withMessage('Start date is required')
     .isISO8601().withMessage('Start date must be a valid date'),
   body('endDate')
-    .notEmpty().withMessage('End date is required')
-    .isISO8601().withMessage('End date must be a valid date'),
+    .optional().isISO8601().withMessage('End date must be a valid date'),
   body('time')
     .notEmpty().withMessage('Time is required')
     .isString().withMessage('Time must be a string'),
@@ -63,19 +96,37 @@ const batchValidator = [
   body('daysOfWeek.*')
     .notEmpty().withMessage('Each day of week is required')
     .isString().withMessage('Day of week must be a string'),
-  body('studentEligibilityCriteria')
-    .optional().isString().withMessage('Eligibility criteria must be a string'),
-  body('courseCategoryOrBoard')
-    .optional().isString().withMessage('Course category/board must be a string'),
+  body('batchStatus')
+    .optional().isIn(['upcoming', 'ongoing', 'completed', 'cancelled']).withMessage('Batch status must be one of: upcoming, ongoing, completed, cancelled'),
+  body('requiresApproval')
+    .optional().isBoolean().withMessage('Requires approval must be a boolean'),
+  body('requiredLevel')
+    .notEmpty().withMessage('Required level is required')
+    .isIn(['primary', 'secondary', 'higher_secondary', 'undergraduate', 'postgraduate']).withMessage('Required level must be one of: primary, secondary, higher_secondary, undergraduate, postgraduate'),
+  body('description')
+    .optional().isString().withMessage('Description must be a string'),
+  body('board')
+    .notEmpty().withMessage('Board is required')
+    .isString().withMessage('Board must be a string'),
 ];
 
 const attendanceViewValidator = [
-  body('batchId')
+  body('teacherDetailId')
     .optional()
-    .isMongoId().withMessage('Batch ID must be a valid Mongo ID'),
+    .isMongoId().withMessage('Teacher detail ID must be a valid Mongo ID'),
+  body('student')
+    .optional()
+    .isMongoId().withMessage('Student must be a valid Mongo ID'),
   body('date')
     .optional()
     .isISO8601().withMessage('Date must be a valid date'),
+  body('status')
+    .optional()
+    .isIn(['present', 'absent', 'late', 'excused']).withMessage('Status must be one of: present, absent, late, excused'),
+  body('notes')
+    .optional()
+    .isString().withMessage('Notes must be a string')
+    .isLength({ max: 500 }).withMessage('Notes cannot exceed 500 characters'),
 ];
 
 module.exports = { detailTeacherValidator, batchValidator, attendanceViewValidator };

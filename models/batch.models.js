@@ -7,6 +7,16 @@ const batchSchema = new Schema({
           ref: 'User',
            required: true
          },
+    teacherFullName: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    teacherDetailId: {
+        type: Schema.Types.ObjectId,
+        ref: 'DetailTeacher',
+        required: true
+    },
     students: [{
          type: mongoose.Schema.Types.ObjectId,
           ref: 'User' }],
@@ -60,11 +70,6 @@ const batchSchema = new Schema({
         enum: ['upcoming', 'ongoing', 'completed', 'cancelled'],
         default: 'upcoming'
     },
-    mode: {
-        type: String,
-        enum: ['online', 'offline', 'hybrid'],
-        default: 'offline'
-    },
     requiresApproval: {
         type: Boolean,
         default: false
@@ -72,15 +77,16 @@ const batchSchema = new Schema({
     requiredLevel: {
         type: String,
         enum: ['primary', 'secondary', 'higher_secondary', 'undergraduate', 'postgraduate'],
-        required: false
+        required: true
     },
     description: {
         type: String,
         trim: true
     },
-    courseCategoryOrBoard: {
+    board: {
         type: String,
-        trim: true
+        trim: true,
+        required: true
     }
 }, {
     timestamps: true
@@ -93,5 +99,6 @@ batchSchema.index({ status: 1 });
 batchSchema.index({ averageRating: -1 });
 batchSchema.index({ mode: 1 });
 batchSchema.index({ requiresApproval: 1 });
+batchSchema.index({ teacherDetailId: 1 });
 
 module.exports = mongoose.model('Batch', batchSchema);

@@ -16,19 +16,55 @@ const detailStudentSchema = new Schema({
         institution: {
             type: String,
             required: true,
-            trim: true
+            trim: true,
+            grade: {
+                type: String,
+                required: true,
+                trim: true
+            },
+            yearOfStudy: {
+                type: Number,
+                required: true
+            }
         },
-        grade: String,
-        yearOfStudy: Number,
+        
         board: {
             type: String,
+
             trim: true
         }
     },
     subjects: [{
         subject: {
-            type: Schema.Types.ObjectId,
-            ref: 'Subject'
+            type: String,
+            enum: [
+                'Mathematics',
+                'Physics',
+                'Chemistry',
+                'Biology',
+                'English',
+                'Hindi',
+                'History',
+                'Geography',
+                'Economics',
+                'Computer Science',
+                'Literature',
+                'Political Science',
+                'Sociology',
+                'Psychology',
+                'Art',
+                'Music',
+                'Physical Education',
+                'Environmental Science',
+                'Business Studies',
+                'Accountancy',
+                'Statistics',
+                'Philosophy',
+                'Religious Studies',
+                'Foreign Languages',
+                'Other'
+            ],
+            required: true
         },
         proficiencyLevel: {
             type: String,
@@ -74,7 +110,7 @@ const detailStudentSchema = new Schema({
         assignments: [{
             title: String,
             dueDate: Date,
-            status: {
+            assignmentStatus: {
                 type: String,
                 enum: ['pending', 'submitted', 'graded'],
                 default: 'pending'
@@ -117,10 +153,19 @@ const detailStudentSchema = new Schema({
         },
         phone: {
             type: String,
-            required: true
+            required: true,
+            trim: true
         },
-        email: String,
-        occupation: String
+        email: {
+            type: String,
+            required: true,
+            trim: true
+        },
+        occupation: {
+            type: String,
+            required: true,
+            trim: true
+        }
     },
     address: {
         street: String,
@@ -128,6 +173,18 @@ const detailStudentSchema = new Schema({
         state: String,
         pincode: String,
         country: String
+    },
+    dob: {
+        type: Date
+    },
+    status: {
+        type: String,
+        enum: ['active', 'inactive'],
+        default: 'active'
+    },
+    location: {
+        type: String,
+        trim: true
     },
 
     // teacher available classes 

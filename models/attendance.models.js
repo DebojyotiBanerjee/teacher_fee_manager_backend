@@ -2,14 +2,14 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const attendanceSchema = new Schema({
-    batch: {
+    teacherDetailId: {
         type: Schema.Types.ObjectId,
-        ref: 'bacth',
+        ref: 'DetailTeacher',
         required: true
     },
     student: {
         type: Schema.Types.ObjectId,
-        ref: 'User',
+        ref: 'DetailStudent',
         required: true
     },
     date: {
