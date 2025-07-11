@@ -2,6 +2,12 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const detailTeacherSchema = new Schema({   
+  user: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    unique: true
+  },
   qualifications: [{
     degree: {
       type: String,
@@ -40,7 +46,7 @@ const detailTeacherSchema = new Schema({
     saturday: [{ start: String, end: String }],
     sunday: [{ start: String, end: String }]
   },
-    socialMedia: {
+  socialMedia: {
     linkedIn: String
   },
   batches: [{
@@ -49,18 +55,19 @@ const detailTeacherSchema = new Schema({
   }],
   ratings: [{
     type: Schema.Types.ObjectId,
-    ref: 'Rating'
-}],
-averageRating: {
+    ref: 'Rating',
+    default: []
+  }],
+  averageRating: {
     type: Number,
     default: 0,
     min: 0,
     max: 5
-},
-totalRatings: {
+  },
+  totalRatings: {
     type: Number,
     default: 0
-},
+  },
   isProfileComplete: {
     type: Boolean,
     default: false
@@ -70,8 +77,8 @@ totalRatings: {
 });
 
 // Indexes for better query performance
-detailTeacherSchema.index({ specialization: 1 });
+
 detailTeacherSchema.index({ 'subjectsTaught': 1 });
-detailTeacherSchema.index({ rating: -1 });
+detailTeacherSchema.index({ averageRating: -1 });
 
 module.exports = mongoose.model('DetailTeacher', detailTeacherSchema);

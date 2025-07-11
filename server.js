@@ -5,6 +5,15 @@ const cors = require('cors');
 const connectDB = require('./config/dbConfig');
 const routes = require('./routes/index.routes');
 require('events').EventEmitter.defaultMaxListeners = 15;
+
+// Import all models to ensure they are registered
+require('./models/user.models.js');
+require('./models/batch.models.js');
+require('./models/detailTeacher.models.js');
+require('./models/rating.models.js');
+require('./models/detailStudent.model.js');
+require('./models/attendance.models.js');
+
 // Import Swagger dependencies
 const swaggerUi = require('swagger-ui-express');
 const swaggerFile = require('./docs/swagger-output.json');

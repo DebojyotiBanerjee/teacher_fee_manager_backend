@@ -9,8 +9,12 @@ const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
 
 // Token expiry settings from environment variables
-const ACCESS_TOKEN_EXPIRY_MS = Number(process.env.ACCESS_TOKEN_EXPIRY_MS) || 60 * 60 * 1000; // 1 hour default
+const ACCESS_TOKEN_EXPIRY_MS = Number(process.env.ACCESS_TOKEN_EXPIRY_MS) || 7 * 24 * 60 * 60 * 1000; // 7 days default
 const REFRESH_TOKEN_EXPIRY_MS = Number(process.env.REFRESH_TOKEN_EXPIRY_MS) || 7 * 24 * 60 * 60 * 1000; // 7 days default
+
+// Convert milliseconds to seconds for JWT
+const ACCESS_TOKEN_EXPIRY_SECONDS = Math.floor(ACCESS_TOKEN_EXPIRY_MS / 1000);
+const REFRESH_TOKEN_EXPIRY_SECONDS = Math.floor(REFRESH_TOKEN_EXPIRY_MS / 1000);
 
 // Email transporter
 const transporter = nodemailer.createTransport({
@@ -163,8 +167,8 @@ exports.verifyOTP = async (req, res) => {
     user.otpExpiry = undefined;
     await user.save();
     
-    const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
-    const refreshToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY_SECONDS });
+    const refreshToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY_SECONDS });
     
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
@@ -286,8 +290,8 @@ exports.login = async (req, res) => {
       });
     }
 
-    const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
-    const refreshToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY_SECONDS });
+    const refreshToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY_SECONDS });
     
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
@@ -562,8 +566,8 @@ exports.refreshToken = async (req, res) => {
       });
     }
     // Issue new tokens using the same payload from the valid refresh token
-    const newAccessToken = jwt.sign({ id: decoded.id, role: decoded.role }, JWT_SECRET, { expiresIn: '1h' });
-    const newRefreshToken = jwt.sign({ id: decoded.id, role: decoded.role }, JWT_SECRET, { expiresIn: '7d' });
+    const newAccessToken = jwt.sign({ id: decoded.id, role: decoded.role }, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY_SECONDS });
+    const newRefreshToken = jwt.sign({ id: decoded.id, role: decoded.role }, JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY_SECONDS });
     res.cookie('accessToken', newAccessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

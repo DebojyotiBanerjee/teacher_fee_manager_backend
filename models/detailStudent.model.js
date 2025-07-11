@@ -27,8 +27,35 @@ const detailStudentSchema = new Schema({
     },
     subjects: [{
         subject: {
-            type: Schema.Types.ObjectId,
-            ref: 'Subject'
+            type: String,
+            enum: [
+                'Mathematics',
+                'Physics',
+                'Chemistry',
+                'Biology',
+                'English',
+                'Hindi',
+                'History',
+                'Geography',
+                'Economics',
+                'Computer Science',
+                'Literature',
+                'Political Science',
+                'Sociology',
+                'Psychology',
+                'Art',
+                'Music',
+                'Physical Education',
+                'Environmental Science',
+                'Business Studies',
+                'Accountancy',
+                'Statistics',
+                'Philosophy',
+                'Religious Studies',
+                'Foreign Languages',
+                'Other'
+            ],
+            required: true
         },
         proficiencyLevel: {
             type: String,
