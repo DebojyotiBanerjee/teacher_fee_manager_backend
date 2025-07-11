@@ -57,3 +57,4 @@ router.get('/me', authenticate(), authController.getCurrentUser);
 router.post('/refresh-token', authController.refreshToken);
 
 module.exports = router;
+

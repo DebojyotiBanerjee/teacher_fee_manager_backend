@@ -51,8 +51,8 @@ exports.createDetailStudent = async (req, res) => {
 
     // Automatically assign user ID from JWT token
     const studentData = {
-      user: req.user._id,  // Auto-assign from token      
-      
+      user: req.user._id,  // Auto-assign from token
+      ...req.body  // Include all the request body data
     };
     console.log('Student Data to save (with auto-assigned user ID):', studentData);
     

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const detailTeacherController = require('../controller/detailTeacher.controller');
 const { detailTeacherValidator, batchValidator } = require('../validators/teacher.validator');
-const { markAttendanceValidator } = require('../validators/attendance.validator');
+const { Attendance } = require('../validators/attendance.validator');
 const validator = require('../middleware/validator.middleware');
 const { 
   authenticateTeacher
@@ -39,8 +39,7 @@ router.get('/view-batches', authenticateTeacher, teacherEnrollController.viewMyB
 router.get('/view-batch/students', authenticateTeacher, teacherEnrollController.viewStudentsInBatch);
 
 // Attendance Management Routes
-router.post('/attendance/mark', authenticateTeacher, markAttendanceValidator, validator, teacherEnrollController.markAttendance);
-router.get('/attendance', authenticateTeacher, teacherEnrollController.getTeacherAttendance);
+router.post('/attendance/mark', authenticateTeacher, Attendance, validator, teacherEnrollController.markAttendance);
 router.get('/attendance/student', authenticateTeacher, teacherEnrollController.getStudentAttendance);
 
 module.exports = router;

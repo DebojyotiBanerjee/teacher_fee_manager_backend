@@ -192,69 +192,6 @@ exports.markAttendance = async (req, res) => {
   }
 };
 
-// Get attendance for the teacher
-exports.getTeacherAttendance = async (req, res) => {
-  try {
-    console.log('Get Teacher Attendance - User:', req.user);
-    console.log('Get Teacher Attendance - User ID:', req.user._id);
-    console.log('Get Teacher Attendance - User Role:', req.user.role);
-    
-    // Check if user is a teacher
-    if (req.user.role !== 'teacher') {
-      console.log('Access denied - User role:', req.user.role);
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. Only teachers can view attendance.'
-      });
-    }
-
-    // Check if teacher has a detail profile
-    const teacherDetail = await DetailTeacher.findOne({ user: req.user._id });
-    if (!teacherDetail) {
-      console.log('Teacher detail profile not found for user:', req.user._id);
-      return res.status(400).json({
-        success: false,
-        message: 'Teacher detail profile not found. Please create your teacher profile first.',
-        requiredAction: 'create_teacher_profile'
-      });
-    }
-
-    console.log('Teacher detail profile found:', teacherDetail._id);
-
-    const { date } = req.query;
-
-    // Build query
-    const query = { teacherDetailId: teacherDetail._id };
-    if (date) {
-      query.date = new Date(date);
-    }
-
-    const attendanceRecords = await Attendance.find(query)
-      .populate('student', 'user')
-      .sort({ date: -1 });
-
-    console.log('Found attendance records:', attendanceRecords.length);
-
-    res.json({
-      success: true,
-      message: 'Attendance records retrieved successfully',
-      data: {
-        totalRecords: attendanceRecords.length,
-        attendance: attendanceRecords,
-        teacherDetailId: teacherDetail._id
-      }
-    });
-
-  } catch (err) {
-    console.error('Get Teacher Attendance Error:', err);
-    res.status(400).json({ 
-      success: false,
-      message: 'Failed to retrieve attendance records',
-      error: err.message 
-    });
-  }
-};
-
 // Get attendance for a specific student
 exports.getStudentAttendance = async (req, res) => {
   try {

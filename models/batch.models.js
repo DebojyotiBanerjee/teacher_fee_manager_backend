@@ -7,6 +7,11 @@ const batchSchema = new Schema({
           ref: 'User',
            required: true
          },
+    teacherFullName: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
     teacherDetailId: {
         type: Schema.Types.ObjectId,
         ref: 'DetailTeacher',
@@ -72,15 +77,16 @@ const batchSchema = new Schema({
     requiredLevel: {
         type: String,
         enum: ['primary', 'secondary', 'higher_secondary', 'undergraduate', 'postgraduate'],
-        required: false
+        required: true
     },
     description: {
         type: String,
         trim: true
     },
-    courseCategoryOrBoard: {
+    board: {
         type: String,
-        trim: true
+        trim: true,
+        required: true
     }
 }, {
     timestamps: true

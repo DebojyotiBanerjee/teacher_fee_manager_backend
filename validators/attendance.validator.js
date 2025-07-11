@@ -1,6 +1,6 @@
 const { body } = require('express-validator');
 
-const markAttendanceValidator = [
+const Attendance = [
   body('studentId')
     .notEmpty().withMessage('Student ID is required')
     .isMongoId().withMessage('Student ID must be a valid Mongo ID'),
@@ -27,7 +27,7 @@ const getStudentAttendanceValidator = [
 ];
 
 module.exports = { 
-  markAttendanceValidator, 
+  Attendance, 
   getTeacherAttendanceValidator, 
   getStudentAttendanceValidator 
 }; 
