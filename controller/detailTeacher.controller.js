@@ -63,15 +63,16 @@ exports.createDetailTeacher = async (req, res) => {
     console.log('Teacher detail created successfully:', detailTeacher._id);
     console.log('Saved teacher detail with user ID:', detailTeacher.user);
     
-    // Verify the save by fetching it back
-    const savedTeacher = await DetailTeacher.findById(detailTeacher._id);
+    // Verify the save by fetching it back with populated user
+    const savedTeacher = await DetailTeacher.findById(detailTeacher._id)
+      .populate('user', 'fullname email role phone');
     console.log('Verified saved teacher detail:', savedTeacher ? 'Yes' : 'No');
     
     res.status(201).json({
       success: true,
       message: 'Teacher detail created successfully',
       data: {
-        ...detailTeacher.toObject(),
+        ...savedTeacher.toObject(),
         teacherUserId: detailTeacher.user, // Show the auto-assigned user ID
         createdBy: req.user._id
       }
@@ -108,7 +109,7 @@ exports.getDetailTeacherById = async (req, res) => {
     console.log('All teacher details:', allTeachers.map(t => ({ id: t._id, userId: t.user })));
 
     const detailTeacher = await DetailTeacher.findOne({ user: req.user._id })
-      .populate('user', 'fullname email role')
+      .populate('user', 'fullname email role phone')
       .populate('batches', 'batchName subject')
       .populate({
         path: 'ratings',
@@ -176,7 +177,7 @@ exports.getTeacherDetails = async (req, res) => {
     if (all === 'true') {
       console.log('Getting all teacher details');
       const allTeachers = await DetailTeacher.find({})
-        .populate('user', 'fullname email role')
+        .populate('user', 'fullname email role phone')
         .populate('batches', 'batchName subject')
         .sort({ createdAt: -1 });
       
@@ -194,7 +195,7 @@ exports.getTeacherDetails = async (req, res) => {
     if (teacherId) {
       console.log('Getting teacher detail by teacher ID:', teacherId);
       const detailTeacher = await DetailTeacher.findById(teacherId)
-        .populate('user', 'fullname email role')
+        .populate('user', 'fullname email role phone')
         .populate('batches', 'batchName subject')
         .populate({
           path: 'ratings',
@@ -227,7 +228,7 @@ exports.getTeacherDetails = async (req, res) => {
     if (userId) {
       console.log('Getting teacher detail by user ID:', userId);
       const detailTeacher = await DetailTeacher.findOne({ user: userId })
-        .populate('user', 'fullname email role')
+        .populate('user', 'fullname email role phone')
         .populate('batches', 'batchName subject')
         .populate({
           path: 'ratings',
@@ -259,7 +260,7 @@ exports.getTeacherDetails = async (req, res) => {
     // Default: Get current teacher's detail
     console.log('Getting current teacher detail');
     const detailTeacher = await DetailTeacher.findOne({ user: req.user._id })
-      .populate('user', 'fullname email role')
+      .populate('user', 'fullname email role phone')
       .populate('batches', 'batchName subject')
       .populate({
         path: 'ratings',
@@ -326,10 +327,14 @@ exports.updateDetailTeacher = async (req, res) => {
       detailTeacher = new DetailTeacher(teacherData);
       await detailTeacher.save();
       
+      // Populate user data for response
+      const savedTeacher = await DetailTeacher.findById(detailTeacher._id)
+        .populate('user', 'fullname email role phone');
+      
       res.status(201).json({
         success: true,
         message: 'Teacher detail created successfully',
-        data: detailTeacher
+        data: savedTeacher.toObject()
       });
     } else {
       console.log('Teacher detail found, updating existing one');
@@ -338,12 +343,12 @@ exports.updateDetailTeacher = async (req, res) => {
         { user: req.user._id }, 
         req.body, 
         { new: true }
-      );
+      ).populate('user', 'fullname email role phone');
       
       res.json({
         success: true,
         message: 'Teacher detail updated successfully',
-        data: detailTeacher
+        data: detailTeacher.toObject()
       });
     }
     
