@@ -213,4 +213,13 @@ detailStudentSchema.index({ 'subjects.subject': 1 });
 detailStudentSchema.index({ isProfileComplete: 1 });
 detailStudentSchema.index({ 'education.currentLevel': 1 });
 
+// Virtual for phone number from user model
+detailStudentSchema.virtual('phone').get(function() {
+  return this.user ? this.user.phone : undefined;
+});
+
+// Ensure virtual fields are included when converting to JSON
+detailStudentSchema.set('toJSON', { virtuals: true });
+detailStudentSchema.set('toObject', { virtuals: true });
+
 module.exports = mongoose.model('DetailStudent', detailStudentSchema);
