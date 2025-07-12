@@ -13,6 +13,10 @@ exports.DetailStudent = [
     .optional().isInt({ min: 1900, max: new Date().getFullYear() }).withMessage('Please provide a valid year'),
   body('education.board')
     .optional().isString().withMessage('Board must be a string'),
+  body('phone')
+    .optional().isString().withMessage('Phone must be a string')
+    .matches(/^[0-9]{10}$/).withMessage('Phone number must be 10 digits long')
+    .isMobilePhone().withMessage('Valid phone number is required'),
   body('subjects')
     .isArray().withMessage('Subjects must be an array'),
   body('subjects.*.subject')

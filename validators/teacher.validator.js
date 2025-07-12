@@ -4,6 +4,10 @@ const detailTeacherValidator = [
   body('user')
     .notEmpty().withMessage('User is required')
     .isMongoId().withMessage('User must be a valid Mongo ID'),
+  body('phone')
+    .optional().isString().withMessage('Phone must be a string')
+    .matches(/^[0-9]{10}$/).withMessage('Phone number must be 10 digits long')
+    .isMobilePhone().withMessage('Valid phone number is required'),
   body('qualifications')
     .isArray({ min: 1 }).withMessage('Qualifications must be a non-empty array'),
   body('qualifications.*.degree')
