@@ -62,15 +62,16 @@ exports.createDetailStudent = async (req, res) => {
     console.log('Student detail created successfully:', detailStudent._id);
     console.log('Saved student detail with user ID:', detailStudent.user);
     
-    // Verify the save by fetching it back
-    const savedStudent = await DetailStudent.findById(detailStudent._id);
+    // Verify the save by fetching it back with populated user
+    const savedStudent = await DetailStudent.findById(detailStudent._id)
+      .populate('user', 'fullname email role phone');
     console.log('Verified saved student detail:', savedStudent ? 'Yes' : 'No');
     
     res.status(201).json({
       success: true,
       message: 'Student detail created successfully',
       data: {
-        ...detailStudent.toObject(),
+        ...savedStudent.toObject(),
         studentUserId: detailStudent.user, // Show the auto-assigned user ID
         createdBy: req.user._id
       }
@@ -178,10 +179,14 @@ exports.updateDetailStudent = async (req, res) => {
       detailStudent = new DetailStudent(studentData);
       await detailStudent.save();
       
+      // Populate user data for response
+      const savedStudent = await DetailStudent.findById(detailStudent._id)
+        .populate('user', 'fullname email role phone');
+      
       res.status(201).json({
         success: true,
         message: 'Student detail created successfully',
-        data: detailStudent
+        data: savedStudent.toObject()
       });
     } else {
       console.log('Student detail found, updating existing one');
@@ -190,12 +195,12 @@ exports.updateDetailStudent = async (req, res) => {
         { user: req.user._id }, 
         req.body, 
         { new: true }
-      );
+      ).populate('user', 'fullname email role phone');
       
       res.json({
         success: true,
         message: 'Student detail updated successfully',
-        data: detailStudent
+        data: detailStudent.toObject()
       });
     }
     
