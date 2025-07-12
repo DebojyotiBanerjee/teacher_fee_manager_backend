@@ -18,14 +18,14 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,      
-      // match: /^[a-zA-Z0-9!@#$%^&*]{8,}$/,
+      required: true,
+      match: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
       select: false
     },
     phone: {
       type: String,
       required: true,
-      // match: /^[0-9]{10}$/
+      match: /^[0-9]{10}$/
     },
     status: {
       type: String,
