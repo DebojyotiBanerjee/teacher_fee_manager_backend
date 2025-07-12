@@ -107,7 +107,7 @@ exports.getDetailStudentById = async (req, res) => {
     console.log('All student details:', allStudents.map(s => ({ id: s._id, userId: s.user })));
 
     const detailStudent = await DetailStudent.findOne({ user: req.user._id })
-      .populate('user', 'fullname email role')
+      .populate('user', 'fullname email role phone')
       .populate('enrolledBatches.batch', 'batchName subject')
       .populate('subjects.subject', 'name');
     

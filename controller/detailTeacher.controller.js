@@ -108,7 +108,7 @@ exports.getDetailTeacherById = async (req, res) => {
     console.log('All teacher details:', allTeachers.map(t => ({ id: t._id, userId: t.user })));
 
     const detailTeacher = await DetailTeacher.findOne({ user: req.user._id })
-      .populate('user', 'fullname email role')
+      .populate('user', 'fullname email role phone')
       .populate('batches', 'batchName subject')
       .populate({
         path: 'ratings',
@@ -176,7 +176,7 @@ exports.getTeacherDetails = async (req, res) => {
     if (all === 'true') {
       console.log('Getting all teacher details');
       const allTeachers = await DetailTeacher.find({})
-        .populate('user', 'fullname email role')
+        .populate('user', 'fullname email role phone')
         .populate('batches', 'batchName subject')
         .sort({ createdAt: -1 });
       
@@ -194,7 +194,7 @@ exports.getTeacherDetails = async (req, res) => {
     if (teacherId) {
       console.log('Getting teacher detail by teacher ID:', teacherId);
       const detailTeacher = await DetailTeacher.findById(teacherId)
-        .populate('user', 'fullname email role')
+        .populate('user', 'fullname email role phone')
         .populate('batches', 'batchName subject')
         .populate({
           path: 'ratings',
@@ -227,7 +227,7 @@ exports.getTeacherDetails = async (req, res) => {
     if (userId) {
       console.log('Getting teacher detail by user ID:', userId);
       const detailTeacher = await DetailTeacher.findOne({ user: userId })
-        .populate('user', 'fullname email role')
+        .populate('user', 'fullname email role phone')
         .populate('batches', 'batchName subject')
         .populate({
           path: 'ratings',
@@ -259,7 +259,7 @@ exports.getTeacherDetails = async (req, res) => {
     // Default: Get current teacher's detail
     console.log('Getting current teacher detail');
     const detailTeacher = await DetailTeacher.findOne({ user: req.user._id })
-      .populate('user', 'fullname email role')
+      .populate('user', 'fullname email role phone')
       .populate('batches', 'batchName subject')
       .populate({
         path: 'ratings',

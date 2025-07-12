@@ -81,4 +81,13 @@ const detailTeacherSchema = new Schema({
 detailTeacherSchema.index({ 'subjectsTaught': 1 });
 detailTeacherSchema.index({ averageRating: -1 });
 
+// Virtual for phone number from user model
+detailTeacherSchema.virtual('phone').get(function() {
+  return this.user ? this.user.phone : undefined;
+});
+
+// Ensure virtual fields are included when converting to JSON
+detailTeacherSchema.set('toJSON', { virtuals: true });
+detailTeacherSchema.set('toObject', { virtuals: true });
+
 module.exports = mongoose.model('DetailTeacher', detailTeacherSchema);
