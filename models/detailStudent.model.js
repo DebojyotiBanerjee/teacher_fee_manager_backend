@@ -16,21 +16,19 @@ const detailStudentSchema = new Schema({
         institution: {
             type: String,
             required: true,
-            trim: true,
-            grade: {
-                type: String,
-                required: true,
-                trim: true
-            },
-            yearOfStudy: {
-                type: Number,
-                required: true
-            }
+            trim: true
         },
-        
+        grade: {
+            type: String,
+            required: true,
+            trim: true
+        },
+        yearOfStudy: {
+            type: Number,
+            required: true
+        },
         board: {
             type: String,
-
             trim: true
         }
     },

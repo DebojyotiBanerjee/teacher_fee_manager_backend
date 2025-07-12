@@ -1,9 +1,6 @@
 const { body } = require('express-validator');
 
 const detailTeacherValidator = [
-  body('user')
-    .notEmpty().withMessage('User is required')
-    .isMongoId().withMessage('User must be a valid Mongo ID'),
   body('phone')
     .optional().isString().withMessage('Phone must be a string')
     .matches(/^[0-9]{10}$/).withMessage('Phone number must be 10 digits long')
@@ -23,6 +20,8 @@ const detailTeacherValidator = [
     .optional().isNumeric().withMessage('Experience years must be a number'),
   body('experience.previousInstitutions')
     .optional().isArray().withMessage('Previous institutions must be an array'),
+  body('experience.previousInstitutions.*')
+    .optional().isString().withMessage('Each previous institution must be a string'),
   body('bio')
     .optional().isString().isLength({ max: 500 }).withMessage('Bio must be a string up to 500 characters'),
   body('subjectsTaught')
@@ -47,11 +46,31 @@ const detailTeacherValidator = [
     .optional().isArray().withMessage('Saturday availability must be an array'),
   body('availability.sunday')
     .optional().isArray().withMessage('Sunday availability must be an array'),
+  // Availability time slots validation
+  body('availability.*.*.start')
+    .optional().isString().withMessage('Start time must be a string'),  
   // Social media validation (optional, only LinkedIn present in schema)
   body('socialMedia')
     .optional().isObject().withMessage('Social media must be an object'),
   body('socialMedia.linkedIn')
     .optional().isString().withMessage('LinkedIn must be a string'),
+  // Rating validation (optional)
+  body('averageRating')
+    .optional().isNumeric().withMessage('Average rating must be a number'),
+  body('totalRatings')
+    .optional().isNumeric().withMessage('Total ratings must be a number'),
+  body('isProfileComplete')
+    .optional().isBoolean().withMessage('Profile complete status must be a boolean'),
+  // Batches validation (optional)
+  body('batches')
+    .optional().isArray().withMessage('Batches must be an array'),
+  body('batches.*')
+    .optional().isMongoId().withMessage('Each batch must be a valid Mongo ID'),
+  // Ratings validation (optional)
+  body('ratings')
+    .optional().isArray().withMessage('Ratings must be an array'),
+  body('ratings.*')
+    .optional().isMongoId().withMessage('Each rating must be a valid Mongo ID'),
 ];
 
 const batchValidator = [
@@ -70,27 +89,53 @@ const batchValidator = [
     .optional().isMongoId().withMessage('Each student must be a valid Mongo ID'),
   body('subject')
     .notEmpty().withMessage('Subject is required')
-    .isString().withMessage('Subject must be a string'),
+    .isString().withMessage('Subject must be a string')
+    .isIn([
+      'Mathematics',
+      'Physics',
+      'Chemistry',
+      'Biology',
+      'English',
+      'Hindi',
+      'History',
+      'Geography',
+      'Economics',
+      'Computer Science',
+      'Literature',
+      'Political Science',
+      'Sociology',
+      'Psychology',
+      'Art',
+      'Music',
+      'Physical Education',
+      'Environmental Science',
+      'Business Studies',
+      'Accountancy',
+      'Statistics',
+      'Philosophy',
+      'Religious Studies',
+      'Foreign Languages',
+      'Other'
+    ]).withMessage('Invalid subject'),
   body('batchName')
     .notEmpty().withMessage('Batch name is required')
     .isString().withMessage('Batch name must be a string'),
   body('startDate')
     .notEmpty().withMessage('Start date is required')
     .isISO8601().withMessage('Start date must be a valid date'),
-  body('endDate')
-    .optional().isISO8601().withMessage('End date must be a valid date'),
+  
   body('time')
     .notEmpty().withMessage('Time is required')
     .isString().withMessage('Time must be a string'),
   body('maxStrength')
     .notEmpty().withMessage('Max strength is required')
-    .isInt({ min: 1 }).withMessage('Max strength must be at least 1'),
+    .isInt({ min: 1, max: 100 }).withMessage('Max strength must be between 1 and 100'),
   body('mode')
     .notEmpty().withMessage('Mode is required')
     .isIn(['online', 'offline', 'hybrid']).withMessage('Mode must be online, offline, or hybrid'),
   body('feePerStudent')
     .notEmpty().withMessage('Fee per student is required')
-    .isFloat({ min: 0 }).withMessage('Fee per student must be a non-negative number'),
+    .isFloat({ min: 0, max: 100000 }).withMessage('Fee per student must be between 0 and 100000'),
   body('location')
     .if(body('mode').not().equals('online'))
     .notEmpty().withMessage('Location is required for offline/hybrid mode')
@@ -99,7 +144,8 @@ const batchValidator = [
     .isArray({ min: 1 }).withMessage('Days of week must be a non-empty array'),
   body('daysOfWeek.*')
     .notEmpty().withMessage('Each day of week is required')
-    .isString().withMessage('Day of week must be a string'),
+    .isString().withMessage('Day of week must be a string')
+    .isIn(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']).withMessage('Day of week must be one of: Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday'),
   body('batchStatus')
     .optional().isIn(['upcoming', 'ongoing', 'completed', 'cancelled']).withMessage('Batch status must be one of: upcoming, ongoing, completed, cancelled'),
   body('requiresApproval')
@@ -111,7 +157,8 @@ const batchValidator = [
     .optional().isString().withMessage('Description must be a string'),
   body('board')
     .notEmpty().withMessage('Board is required')
-    .isString().withMessage('Board must be a string'),
+    .isString().withMessage('Board must be a string')
+    .isIn(['CBSE', 'ICSE', 'State Board', 'IB', 'Other']).withMessage('Board must be one of: CBSE, ICSE, State Board, IB, Other'),
 ];
 
 const attendanceViewValidator = [
@@ -123,7 +170,18 @@ const attendanceViewValidator = [
     .isMongoId().withMessage('Student must be a valid Mongo ID'),
   body('date')
     .optional()
-    .isISO8601().withMessage('Date must be a valid date'),
+    .isISO8601().withMessage('Date must be a valid date')
+    .custom((value) => {
+      if (value) {
+        const attendanceDate = new Date(value);
+        const today = new Date();
+        today.setHours(23, 59, 59, 999); // End of today
+        if (attendanceDate > today) {
+          throw new Error('Attendance date cannot be in the future');
+        }
+      }
+      return true;
+    }),
   body('status')
     .optional()
     .isIn(['present', 'absent', 'late', 'excused']).withMessage('Status must be one of: present, absent, late, excused'),
