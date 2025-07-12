@@ -1,216 +1,160 @@
 const DetailStudent = require('../models/detailStudent.model');
+const { 
+  handleError, 
+  sendSuccessResponse, 
+  checkRoleAccess, 
+  checkExistingProfile, 
+  createProfile, 
+  updateProfile, 
+  getProfile, 
+  sendDashboardResponse, 
+  logControllerAction 
+} = require('../utils/controllerUtils');
+const { sanitizeRequest } = require('../utils/sanitizer');
 
 exports.studentDashboard = async (req, res) => {
   try {
-    console.log('Student Dashboard - User:', req.user);
-    console.log('Student Dashboard - Role:', req.user?.role);
-    
-    res.status(200).json({
-      success: true,
-      message: 'Welcome to Student Dashboard',
-      data: {
-        studentId: req.user._id,
-        role: req.user.role
-      }
-    });
+    logControllerAction('Student Dashboard', req.user);
+    sendDashboardResponse(res, req.user._id, req.user.role);
   } catch (err) {
-    console.error('Student Dashboard Error:', err);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: err.message
-    });
+    handleError(err, res, 'Dashboard error');
   }
 };
 
 // Create a new detailStudent
 exports.createDetailStudent = async (req, res) => {
   try {
-    console.log('Create Student Detail - User:', req.user);
-    console.log('Create Student Detail - User ID:', req.user._id);
-    console.log('Create Student Detail - Body:', req.body);
+    logControllerAction('Create Student Detail', req.user, { body: req.body });
     
-    // Check if user is a student
-    if (req.user.role !== 'student') {
-      console.log('Access denied - User role:', req.user.role);
+    // Sanitize input
+    sanitizeRequest(req);
+    
+    // Check role access
+    const roleCheck = checkRoleAccess(req, 'student');
+    if (!roleCheck.allowed) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied. Only students can create student details.'
+        message: roleCheck.message
       });
     }
 
-    // Check if student detail already exists
-    const existingStudent = await DetailStudent.findOne({ user: req.user._id });
-    if (existingStudent) {
-      console.log('Student detail already exists for this user');
+    // Check if profile already exists
+    const { exists, profile } = await checkExistingProfile(DetailStudent, req.user._id);
+    if (exists) {
       return res.status(409).json({
         success: false,
         message: 'Student detail already exists for this user'
       });
     }
 
-    // Automatically assign user ID from JWT token
-    const studentData = {
-      user: req.user._id,  // Auto-assign from token
-      ...req.body  // Include all the request body data
-    };
-    console.log('Student Data to save (with auto-assigned user ID):', studentData);
+    // Create profile with populated user
+    const savedStudent = await createProfile(
+      DetailStudent, 
+      req.body, 
+      req.user._id, 
+      'user fullname email role phone'
+    );
     
-    const detailStudent = new DetailStudent(studentData);
-    await detailStudent.save();
+    sendSuccessResponse(res, {
+      ...savedStudent.toObject(),
+      studentUserId: savedStudent.user,
+      createdBy: req.user._id
+    }, 'Student detail created successfully', 201);
     
-    console.log('Student detail created successfully:', detailStudent._id);
-    console.log('Saved student detail with user ID:', detailStudent.user);
-    
-    // Verify the save by fetching it back with populated user
-    const savedStudent = await DetailStudent.findById(detailStudent._id)
-      .populate('user', 'fullname email role phone');
-    console.log('Verified saved student detail:', savedStudent ? 'Yes' : 'No');
-    
-    res.status(201).json({
-      success: true,
-      message: 'Student detail created successfully',
-      data: {
-        ...savedStudent.toObject(),
-        studentUserId: detailStudent.user, // Show the auto-assigned user ID
-        createdBy: req.user._id
-      }
-    });
   } catch (err) {
-    console.error('Create Student Detail Error:', err);
-    res.status(400).json({ 
-      success: false,
-      message: 'Failed to create student detail',
-      error: err.message 
-    });
+    handleError(err, res, 'Failed to create student detail');
   }
 };
 
 // Get detailStudent by ID
 exports.getDetailStudentById = async (req, res) => {
   try {
-    console.log('Get Student Detail - User:', req.user);
-    console.log('Get Student Detail - User ID:', req.user._id);
-    console.log('Get Student Detail - User Role:', req.user.role);
+    logControllerAction('Get Student Detail', req.user);
     
-    // Check if user is a student
-    if (req.user.role !== 'student') {
-      console.log('Access denied - User role:', req.user.role);
+    // Check role access
+    const roleCheck = checkRoleAccess(req, 'student');
+    if (!roleCheck.allowed) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied. Only students can view student details.'
+        message: roleCheck.message
       });
     }
 
-    // First, let's check if any student details exist in the database
-    const allStudents = await DetailStudent.find({});
-    console.log('Total student details in database:', allStudents.length);
-    console.log('All student details:', allStudents.map(s => ({ id: s._id, userId: s.user })));
-
-    const detailStudent = await DetailStudent.findOne({ user: req.user._id })
-      .populate('user', 'fullname email role phone')
-      .populate('enrolledBatches.batch', 'batchName subject')
-      .populate('subjects.subject', 'name');
-    
-    console.log('Found student detail:', detailStudent ? 'Yes' : 'No');
-    console.log('Query used: { user:', req.user._id, '}');
+    const detailStudent = await getProfile(DetailStudent, req.user._id, {
+      user: 'fullname email role phone',
+      enrolledBatches: 'batchName subject',
+      subjects: 'name'
+    });
     
     if (!detailStudent) {
       return res.status(404).json({ 
         success: false,
-        message: 'Student detail not found',
-        debug: {
-          searchedUserId: req.user._id,
-          totalStudentsInDB: allStudents.length,
-          currentUserRole: req.user.role
-        }
+        message: 'Student detail not found'
       });
     }
     
-    res.json({
-      success: true,
-      message: 'Student detail retrieved successfully',
-      data: {
-        ...detailStudent.toObject(),
-        studentUserId: detailStudent.user, // Show the assigned user ID
-        currentUser: {
-          id: req.user._id,
-          role: req.user.role
-        }
+    sendSuccessResponse(res, {
+      ...detailStudent.toObject(),
+      studentUserId: detailStudent.user,
+      currentUser: {
+        id: req.user._id,
+        role: req.user.role
       }
-    });
+    }, 'Student detail retrieved successfully');
+    
   } catch (err) {
-    console.error('Get Student Detail Error:', err);
-    res.status(400).json({ 
-      success: false,
-      message: 'Failed to retrieve student detail',
-      error: err.message 
-    });
+    handleError(err, res, 'Failed to retrieve student detail');
   }
 };
 
 // Update detailStudent
 exports.updateDetailStudent = async (req, res) => {
   try {
-    console.log('Update Student Detail - User:', req.user);
-    console.log('Update Student Detail - Body:', req.body);
+    logControllerAction('Update Student Detail', req.user, { body: req.body });
     
-    // Check if user is a student
-    if (req.user.role !== 'student') {
-      console.log('Access denied - User role:', req.user.role);
+    // Sanitize input
+    sanitizeRequest(req);
+    
+    // Check role access
+    const roleCheck = checkRoleAccess(req, 'student');
+    if (!roleCheck.allowed) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied. Only students can update student details.'
+        message: roleCheck.message
       });
     }
 
-    // Check if student detail exists
-    let detailStudent = await DetailStudent.findOne({ user: req.user._id });
+    // Check if profile exists
+    const { exists, profile } = await checkExistingProfile(DetailStudent, req.user._id);
     
-    if (!detailStudent) {
-      console.log('Student detail not found, creating new one');
-      // Create new student detail if it doesn't exist
-      const studentData = {
-        user: req.user._id,
-        education: req.body.education,
-        subjects: req.body.subjects,
-        enrolledBatches: []
-      };
-      detailStudent = new DetailStudent(studentData);
-      await detailStudent.save();
-      
-      // Populate user data for response
-      const savedStudent = await DetailStudent.findById(detailStudent._id)
-        .populate('user', 'fullname email role phone');
-      
-      res.status(201).json({
-        success: true,
-        message: 'Student detail created successfully',
-        data: savedStudent.toObject()
-      });
-    } else {
-      console.log('Student detail found, updating existing one');
-      // Update existing student detail
-      detailStudent = await DetailStudent.findOneAndUpdate(
-        { user: req.user._id }, 
+    if (!exists) {
+      // Create new profile if it doesn't exist
+      const savedStudent = await createProfile(
+        DetailStudent, 
         req.body, 
-        { new: true }
-      ).populate('user', 'fullname email role phone');
+        req.user._id, 
+        'user fullname email role phone'
+      );
       
-      res.json({
-        success: true,
-        message: 'Student detail updated successfully',
-        data: detailStudent.toObject()
-      });
+      sendSuccessResponse(res, savedStudent.toObject(), 'Student detail created successfully', 201);
+    } else {
+      // Update existing profile
+      const updatedStudent = await updateProfile(
+        DetailStudent, 
+        req.user._id, 
+        req.body, 
+        {
+          user: 'fullname email role phone',
+          enrolledBatches: 'batchName subject',
+          subjects: 'name'
+        }
+      );
+      
+      sendSuccessResponse(res, updatedStudent.toObject(), 'Student detail updated successfully');
     }
     
   } catch (err) {
-    console.error('Update Student Detail Error:', err);
-    res.status(400).json({ 
-      success: false,
-      message: 'Failed to update student detail',
-      error: err.message 
-    });
+    handleError(err, res, 'Failed to update student detail');
   }
 };
 
