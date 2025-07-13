@@ -88,6 +88,94 @@ exports.getAvailableBatches = async (req, res) => {
 
 
 
+// 2. Apply/Enroll: Student applies to enroll in a batch
+
+
+exports.applyToBatch = async (req, res) => {
+  try {
+    const { batchId } = req.body;
+    const studentId = req.user.id;
+
+    // Check if batchId is valid
+    if (!mongoose.Types.ObjectId.isValid(batchId)) {
+      return res.status(400).json({ success: false, error: 'Invalid batch ID' });
+    }
+
+    // Get student profile
+    const student = await DetailStudent.findOne({ user: studentId });
+    if (!student) {
+      return res.status(404).json({ success: false, error: 'Profile not found. Complete your profile first.' });
+    }
+    console.log(student);
+
+    
+
+    // Get batch details
+    const batch = await Batch.findById(batchId);
+    if (!batch) {
+      return res.status(404).json({ success: false, error: 'Batch not found' });
+    }
+
+    // Check if batch is open
+    if (!['upcoming', 'ongoing'].includes(batch.batchStatus)) {
+      return res.status(400).json({ success: false, error: 'Batch is not open for enrollment' });
+    }
+
+    // Check if batch is full
+    if (batch.students.length >= batch.maxStrength) {
+      return res.status(400).json({ success: false, error: 'Batch is full' });
+    }
+
+    // Check if already enrolled
+    const alreadyEnrolled = student.enrolledBatches.some(
+      (e) => e.batch.toString() === batchId
+    );
+    if (alreadyEnrolled) {
+      return res.status(400).json({ success: false, error: 'Already applied to this batch' });
+    }
+
+    // Add student to batch with appropriate status
+    const status = batch.requiresApproval ? 'pending' : 'active';
+    const now = new Date();
+
+    student.enrolledBatches.push({
+      batch: batchId,
+      status,
+      enrollmentDate: now,
+      attendance: { present: 0, total: 0 },
+      assignments: [],
+      progress: 0,
+      feePaid: false
+    });
+
+    await student.save();
+
+    await Batch.findByIdAndUpdate(batchId, {
+      $addToSet: { students: student._id }
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: status === 'pending'
+        ? 'Application submitted. Waiting for teacher approval.'
+        : 'Enrolled successfully.',
+      data: {
+        batchId,
+        status,
+        enrollmentDate: now,
+        batchName: batch.batchName,
+        subject: batch.subject
+      }
+    });
+
+  } catch (err) {
+    console.error('Error in applyToBatch:', err);
+    return res.status(500).json({ success: false, error: 'Something went wrong' });
+  }
+}; // grade,yearOfStudy not available in the model, so not checking !!!! without checking all done ✅
+
+
+
 
 
 
