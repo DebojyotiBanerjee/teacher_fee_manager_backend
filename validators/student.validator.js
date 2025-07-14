@@ -7,12 +7,18 @@ exports.DetailStudent = [
   body('education.institution')
     .notEmpty().withMessage('Institution name is required')
     .isString().withMessage('Institution must be a string'),
-  body('education.institution.grade')
-    .optional().isString().withMessage('Grade must be a string'),
-  body('education.institution.yearOfStudy')
-    .optional().isInt({ min: 1900, max: new Date().getFullYear() }).withMessage('Please provide a valid year'),
+  body('education.grade')
+    .notEmpty().withMessage('Grade is required')
+    .isString().withMessage('Grade must be a string'),
+  body('education.yearOfStudy')
+    .notEmpty().withMessage('Year of study is required')
+    .isInt({ min: 1900, max: new Date().getFullYear() }).withMessage('Please provide a valid year'),
   body('education.board')
     .optional().isString().withMessage('Board must be a string'),
+  body('phone')
+    .optional().isString().withMessage('Phone must be a string')
+    .matches(/^[0-9]{10}$/).withMessage('Phone number must be 10 digits long')
+    .isMobilePhone().withMessage('Valid phone number is required'),
   body('subjects')
     .isArray().withMessage('Subjects must be an array'),
   body('subjects.*.subject')
@@ -51,6 +57,17 @@ exports.DetailStudent = [
     .optional().isNumeric().withMessage('Target score must be a number'),
   body('subjects.*.currentScore')
     .optional().isNumeric().withMessage('Current score must be a number'),
+  // Academic performance validation (optional)
+  body('academicPerformance.averageScore')
+    .optional().isNumeric().withMessage('Average score must be a number'),
+  body('academicPerformance.strengths')
+    .optional().isArray().withMessage('Strengths must be an array'),
+  body('academicPerformance.strengths.*')
+    .optional().isString().withMessage('Each strength must be a string'),
+  body('academicPerformance.areasForImprovement')
+    .optional().isArray().withMessage('Areas for improvement must be an array'),
+  body('academicPerformance.areasForImprovement.*')
+    .optional().isString().withMessage('Each area for improvement must be a string'),
   // Guardian validation
   body('guardian.name')
     .notEmpty().withMessage('Guardian name is required')
@@ -82,6 +99,9 @@ exports.DetailStudent = [
     .optional().isIn(['active', 'inactive']).withMessage('Status must be either active or inactive'),
   body('location')
     .optional().isString().withMessage('Location must be a string'),
+  // Date of birth validation (optional)
+  body('dob')
+    .optional().isISO8601().withMessage('Date of birth must be a valid date'),
   // Enrolled batches validation (optional)
   body('enrolledBatches')
     .optional().isArray().withMessage('Enrolled batches must be an array'),

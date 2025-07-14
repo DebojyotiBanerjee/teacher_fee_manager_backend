@@ -7,6 +7,7 @@ const validator = require('../middleware/validator.middleware');
 const { 
   authenticateTeacher
 } = require('../middleware/auth.middleware');
+const { sanitizeInput } = require('../middleware/sanitizer.middleware');
 const teacherEnrollController = require('../controller/teacherEnroll.controller');
 
 // Test route to check if teacher routes are working
@@ -23,9 +24,9 @@ router.get('/test', (req, res) => {
 router.get('/dashboard', authenticateTeacher, detailTeacherController.teacherDashboard);
 
 // Teacher Detail Management
-router.post('/detail', authenticateTeacher, detailTeacherValidator, validator, detailTeacherController.createDetailTeacher);
+router.post('/detail', authenticateTeacher, sanitizeInput, detailTeacherValidator, validator, detailTeacherController.createDetailTeacher);
 router.get('/detail', authenticateTeacher, detailTeacherController.getDetailTeacherById);
-router.put('/detail', authenticateTeacher, detailTeacherValidator, validator, detailTeacherController.updateDetailTeacher);
+router.put('/detail', authenticateTeacher, sanitizeInput, detailTeacherValidator, validator, detailTeacherController.updateDetailTeacher);
 router.delete('/detail', authenticateTeacher, detailTeacherController.deleteDetailTeacher);
 
 // Batch Management Routes
