@@ -43,4 +43,6 @@ router.get('/view-batch/students', authenticateTeacher, teacherEnrollController.
 router.post('/attendance/mark', authenticateTeacher, Attendance, validator, teacherEnrollController.markAttendance);
 router.get('/attendance/student', authenticateTeacher, teacherEnrollController.getStudentAttendance);
 
+
+
 module.exports = router;

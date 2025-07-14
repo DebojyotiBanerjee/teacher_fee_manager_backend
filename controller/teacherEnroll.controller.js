@@ -199,7 +199,7 @@ exports.getStudentAttendance = async (req, res) => {
     console.log('Get Student Attendance - User ID:', req.user._id);
     console.log('Get Student Attendance - User Role:', req.user.role);
     
-    // Check if user is a teacher
+    // Check if user is a teacherz
     if (req.user.role !== 'teacher') {
       console.log('Access denied - User role:', req.user.role);
       return res.status(403).json({
