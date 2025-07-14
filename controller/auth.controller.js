@@ -525,12 +525,12 @@ exports.getCurrentUser = async (req, res) => {
         }
       });
     }
-    const { fullname, email, role, isVerified } = req.user;
+    const { fullname, email, role, isVerified, phone } = req.user;
     res.status(200).json({
       success: true,
       message: 'User authenticated',
       data: {
-        user: { fullname, email, role, isVerified },
+        user: { fullname, email, role, isVerified, phone },
         isAuthenticated: true
       }
     });
