@@ -73,10 +73,7 @@ const detailTeacherValidator = [
     .optional().isMongoId().withMessage('Each rating must be a valid Mongo ID'),
 ];
 
-const batchValidator = [
-  body('teacher')
-    .notEmpty().withMessage('Teacher is required')
-    .isMongoId().withMessage('Teacher must be a valid Mongo ID'),
+const batchValidator = [  
   body('teacherFullName')
     .notEmpty().withMessage('Teacher full name is required')
     .isMongoId().withMessage('Teacher full name must be a valid Mongo ID'),
