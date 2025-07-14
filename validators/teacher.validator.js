@@ -71,12 +71,21 @@ const detailTeacherValidator = [
     .optional().isArray().withMessage('Ratings must be an array'),
   body('ratings.*')
     .optional().isMongoId().withMessage('Each rating must be a valid Mongo ID'),
+  body('address')
+    .optional().isObject().withMessage('Address must be an object'),
+  body('address.street')
+    .optional().isString().withMessage('Street must be a string'),
+  body('address.city')
+    .optional().isString().withMessage('City must be a string'),
+  body('address.state')
+    .optional().isString().withMessage('State must be a string'),
+  body('address.pincode')
+    .optional().isString().withMessage('Pincode must be a string'),
+  body('address.country')
+    .optional().isString().withMessage('Country must be a string'),
 ];
 
-const batchValidator = [
-  body('teacher')
-    .notEmpty().withMessage('Teacher is required')
-    .isMongoId().withMessage('Teacher must be a valid Mongo ID'),
+const batchValidator = [  
   body('teacherFullName')
     .notEmpty().withMessage('Teacher full name is required')
     .isMongoId().withMessage('Teacher full name must be a valid Mongo ID'),

@@ -33,6 +33,13 @@ const detailTeacherSchema = new Schema({
     type: String,
     maxlength: 500
   },
+  address: {
+    street: { type: String },
+    city: { type: String },
+    state: { type: String },
+    pincode: { type: String },
+    country: { type: String }
+  },
   subjectsTaught: [{
     type: String,
     required: true
