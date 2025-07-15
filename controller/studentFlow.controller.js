@@ -16,7 +16,7 @@ exports.getAvailableBatches = async (req, res) => {
       filters.subject = subject;
     }
 
-    // Filter by batch status ( ongoing, completed)
+    // Filter by batch status (e.g., ongoing, completed)
     if (status) {
       filters.batchStatus = status;
     }
@@ -36,7 +36,7 @@ exports.getAvailableBatches = async (req, res) => {
         filters.teacher = { $in: teacherIds };
       } else {
         // No matching teachers, return empty result
-        return res.status(200).json([{result: 'No batches found for the given teacher name'}]);
+        return res.status(200).json([]);
       }
     }
 
@@ -89,97 +89,97 @@ exports.getAvailableBatches = async (req, res) => {
 
 
 // 2. Apply/Enroll: Student applies to enroll in a batch
-
-
 exports.applyToBatch = async (req, res) => {
   try {
-    const { batchId } = req.body;
     const studentId = req.user.id;
+    const { batchId } = req.body;  // 🔁 batchId from body
 
-    // Check if batchId is valid
+    // Validate batch ID
     if (!mongoose.Types.ObjectId.isValid(batchId)) {
-      return res.status(400).json({ success: false, error: 'Invalid batch ID' });
+      return res.status(400).json({ error: 'Invalid batch ID' });
     }
 
-    // Get student profile
-    const student = await DetailStudent.findOne({ user: studentId });
-    if (!student) {
-      return res.status(404).json({ success: false, error: 'Profile not found. Complete your profile first.' });
+    // Find student profile
+    const detailStudent = await DetailStudent.findOne({ user: studentId });
+    if (!detailStudent) {
+      return res.status(404).json({ error: 'Student profile not found. Please complete your profile first.' });
     }
-    console.log(student);
 
-    
+    // Check if profile is complete
+    if (!detailStudent.isProfileComplete) {
+      return res.status(400).json({ error: 'Please complete your profile before enrolling in batches' });
+    }
 
-    // Get batch details
+    // Find the batch
     const batch = await Batch.findById(batchId);
     if (!batch) {
-      return res.status(404).json({ success: false, error: 'Batch not found' });
+      return res.status(404).json({ error: 'Batch not found' });
     }
 
-    // Check if batch is open
-    if (!['upcoming', 'ongoing'].includes(batch.batchStatus)) {
-      return res.status(400).json({ success: false, error: 'Batch is not open for enrollment' });
+    // Check if batch is accepting enrollments
+    if (!['upcoming', 'ongoing'].includes(batch.status)) {
+      return res.status(400).json({ error: 'This batch is not accepting enrollments' });
     }
 
     // Check if batch is full
     if (batch.students.length >= batch.maxStrength) {
-      return res.status(400).json({ success: false, error: 'Batch is full' });
+      return res.status(400).json({ error: 'Batch is full' });
     }
 
-    // Check if already enrolled
-    const alreadyEnrolled = student.enrolledBatches.some(
-      (e) => e.batch.toString() === batchId
+    // Check if already enrolled/applied
+    const alreadyEnrolled = detailStudent.enrolledBatches.some(
+      (enroll) => enroll.batch.toString() === batchId
     );
+
     if (alreadyEnrolled) {
-      return res.status(400).json({ success: false, error: 'Already applied to this batch' });
+      return res.status(400).json({ error: 'Already enrolled in this batch' });
     }
 
-    // Add student to batch with appropriate status
-    const status = batch.requiresApproval ? 'pending' : 'active';
-    const now = new Date();
+    // Check for approval requirement
+    const requiresApproval = batch.requiresApproval || false;
+    const enrollmentStatus = requiresApproval ? 'pending' : 'active';
 
-    student.enrolledBatches.push({
+    // Add to enrolledBatches
+    detailStudent.enrolledBatches.push({
       batch: batchId,
-      status,
-      enrollmentDate: now,
+      status: enrollmentStatus,
+      enrollmentDate: new Date(),
       attendance: { present: 0, total: 0 },
       assignments: [],
       progress: 0,
       feePaid: false
     });
 
-    await student.save();
+    await detailStudent.save();
 
+    // Add student to Batch.students array
     await Batch.findByIdAndUpdate(batchId, {
-      $addToSet: { students: student._id }
+      $addToSet: { students: detailStudent._id }
     });
 
-    return res.status(200).json({
-      success: true,
-      message: status === 'pending'
-        ? 'Application submitted. Waiting for teacher approval.'
-        : 'Enrolled successfully.',
-      data: {
-        batchId,
-        status,
-        enrollmentDate: now,
-        batchName: batch.batchName,
-        subject: batch.subject
-      }
+    const message = requiresApproval
+      ? 'Applied to batch successfully. Awaiting teacher approval.'
+      : 'Enrolled in batch successfully.';
+
+    res.json({
+      message,
+      enrollmentStatus,
+      batchId,
+      enrollmentDate: new Date()
     });
 
   } catch (err) {
-    console.error('Error in applyToBatch:', err);
-    return res.status(500).json({ success: false, error: 'Something went wrong' });
+    console.log(`Error in applyToBatch: ${err.message}`);
+    res.status(500).json({ error: err.message });
   }
-}; // grade,yearOfStudy not available in the model, so not checking !!!! without checking all done ✅
+};
 
 
 
 
 
 
-// testing required for the next steps
+
 // 3. Approval: Teacher may approve/reject the student's enrollment (optional)
 exports.approveEnrollment = async (req, res) => {
   try {
@@ -303,7 +303,7 @@ exports.getMyBatches = async (req, res) => {
 exports.getEnrollmentDetails = async (req, res) => {
   try {
     const studentId = req.user.id;
-    const batchId = req.body.batchId;
+    const batchId = req.params.batchId;
 
     const detailStudent = await DetailStudent.findOne({ user: studentId })
       .populate({
@@ -339,7 +339,50 @@ exports.getEnrollmentDetails = async (req, res) => {
   }
 };
 
+// 6. Update attendance (for teachers or automated system)
+exports.updateAttendance = async (req, res) => {
+  try {
+    const { studentId, batchId, isPresent } = req.body;
+    const teacherId = req.user.id;
 
+    // Verify teacher owns the batch
+    const batch = await Batch.findById(batchId);
+    if (!batch || batch.teacher.toString() !== teacherId) {
+      return res.status(403).json({ error: 'Not authorized to update attendance for this batch' });
+    }
+
+    const detailStudent = await DetailStudent.findOne({ user: studentId });
+    if (!detailStudent) {
+      return res.status(404).json({ error: 'Student profile not found' });
+    }
+
+    const enrollment = detailStudent.enrolledBatches.find(
+      enroll => enroll.batch.toString() === batchId
+    );
+
+    if (!enrollment) {
+      return res.status(404).json({ error: 'Enrollment not found' });
+    }
+
+    // Update attendance
+    enrollment.attendance.total += 1;
+    if (isPresent) {
+      enrollment.attendance.present += 1;
+    }
+
+    await detailStudent.save();
+
+    res.json({
+      message: 'Attendance updated successfully',
+      attendance: enrollment.attendance,
+      attendancePercentage: (enrollment.attendance.present / enrollment.attendance.total) * 100
+    });
+
+  } catch (err) {
+    console.log(`Error in updateAttendance: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+};
 
 // 7. Mark fee as paid
 exports.markFeePaid = async (req, res) => {

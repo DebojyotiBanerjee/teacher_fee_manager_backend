@@ -1,6 +1,10 @@
 const { body } = require('express-validator');
 
 exports.DetailStudent = [
+  body('gender')
+    .notEmpty().withMessage('Gender is required')
+    .isString().withMessage('Gender must be a string')
+    .isIn(['male', 'female', 'other', 'prefer_not_to_say']).withMessage('Gender must be one of: male, female, other, prefer_not_to_say'),
   body('education.currentLevel')
     .notEmpty().withMessage('Current education level is required')
     .isString().withMessage('Current level must be a string'),

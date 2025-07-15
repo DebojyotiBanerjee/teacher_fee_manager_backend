@@ -7,6 +7,11 @@ const detailStudentSchema = new Schema({
         ref: 'User',
         required: true
     },
+    gender: {
+        type: String,
+        enum: ['male', 'female', 'other', 'prefer_not_to_say'],
+        required: true
+    },
     education: {
         currentLevel: {
             type: String,

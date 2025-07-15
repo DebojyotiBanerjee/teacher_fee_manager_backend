@@ -1,12 +1,7 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
-const batchSchema = new Schema({
-    teacher: {
-         type: Schema.Types.ObjectId,
-          ref: 'User',
-           required: true
-         },
+const batchSchema = new Schema({    
     teacherFullName: {
         type: Schema.Types.ObjectId,
         ref: 'User',
@@ -33,9 +28,6 @@ const batchSchema = new Schema({
     startDate: {
         type: Date,
         required: true
-    },
-    endDate: {
-        type: Date,
     },
     time: {
         type: String, // e.g., "10:00 AM - 12:00 PM"
