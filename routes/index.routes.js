@@ -9,7 +9,7 @@ const router = express.Router();
 
 router.use('/auth', authRoutes);
 router.use('/teacher', teacherRoutes);
-router.use('/student', studentRoutes);
-router.use('/student-Flow', studentFlowRoutes);
+router.use('/user', studentRoutes);
+router.use('/user-Flow', studentFlowRoutes);
 
 module.exports = router;
