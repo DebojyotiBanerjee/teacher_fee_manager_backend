@@ -14,7 +14,7 @@ exports.registerValidator = [
     .isMobilePhone().withMessage('Valid phone number is required'),
   body('password')
     .notEmpty().withMessage('Password is required')    
-    .matches(/^[a-zA-Z0-9!@#$%^&*]{8,}$/).withMessage('Password must be at least 8 characters long and can include letters, numbers, and special characters (!@#$%^&*)'),
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$])[A-Za-z\d!@#$]{8,}$/).withMessage('Password must be at least 8 characters long and can include letters, numbers, and special characters (!@#$%^&*)'),
   body('confirmPassword')
     .notEmpty().withMessage('Confirm password is required')
     .custom((value, { req }) => value === req.body.password).withMessage('Passwords do not match'),

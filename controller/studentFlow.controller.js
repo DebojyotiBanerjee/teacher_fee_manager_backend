@@ -3,143 +3,151 @@ const Batch = require('../models/batch.models');
 const mongoose = require('mongoose');
 const User = require('../models/user.models'); // Add this import
 
-// 1. View Batches: Student browses available batches/enrollments (filtered)
+// --- Helper Functions ---
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+
+const buildBatchFilters = async (body) => {
+  const filters = {};
+  const { subject, status, teacher, teacherName, mode, minFee, maxFee } = body;
+
+  if (subject) filters.subject = subject;
+  if (status) filters.batchStatus = status;
+  if (teacher) filters.teacher = teacher;
+  if (mode) filters.mode = mode;
+  if (minFee || maxFee) {
+    filters.feePerStudent = {};
+    if (minFee) filters.feePerStudent.$gte = parseFloat(minFee);
+    if (maxFee) filters.feePerStudent.$lte = parseFloat(maxFee);
+  }
+  if (teacherName) {
+    const users = await User.find({ fullname: { $regex: teacherName, $options: 'i' } }).select('_id');
+    const teacherIds = users.map(u => u._id);
+    if (teacherIds.length > 0) {
+      filters.teacher = { $in: teacherIds };
+    } else {
+      // No matching teachers, return impossible filter
+      filters.teacher = { $in: [] };
+    }
+  }
+  return filters;
+};
+
+const sendError = (res, status, message) => res.status(status).json({ success: false, error: message });
+const sendSuccess = (res, data) => res.status(200).json({ success: true, data });
+
+// Helper to check if all required fields are filled in detailStudent
+function hasAllRequiredFields(detailStudent) {
+  if (!detailStudent) return false;
+  // Top-level required fields
+  if (!detailStudent.user || !detailStudent.gender) return false;
+  // Education required fields
+  const edu = detailStudent.education || {};
+  if (!edu.currentLevel || !edu.institution || !edu.grade || !edu.yearOfStudy) return false;
+  // Guardian required fields
+  const guardian = detailStudent.guardian || {};
+  if (!guardian.name || !guardian.relation || !guardian.phone || !guardian.email || !guardian.occupation) return false;
+  // At least one subject with subject field
+  if (!Array.isArray(detailStudent.subjects) || detailStudent.subjects.length === 0) return false;
+  if (!detailStudent.subjects[0].subject) return false;
+  return true;
+}
+
+// --- Refactored Controllers ---
+
+/**
+ * POST /student-Flow/batches
+ * View available batches (filtered)
+ */
 exports.getAvailableBatches = async (req, res) => {
   try {
-    const filters = {};
-
-    // Get filter values sent in the request body
-    const { subject, status, teacher, teacherName, mode, minFee, maxFee } = req.body;
-
-    // Filter by subject name
-    if (subject) {
-      filters.subject = subject;
-    }
-
-    // Filter by batch status (e.g., ongoing, completed)
-    if (status) {
-      filters.batchStatus = status;
-    }
-
-    // Filter by teacher ID
-    if (teacher) {
-      filters.teacher = teacher;
-    }
-
-    // Filter by teacher name (search in User collection)
-    if (teacherName) {
-      const users = await User.find({
-        fullname: { $regex: teacherName, $options: 'i' }
-      }).select('_id');
-      const teacherIds = users.map(u => u._id);
-      if (teacherIds.length > 0) {
-        filters.teacher = { $in: teacherIds };
-      } else {
-        // No matching teachers, return empty result
-        return res.status(200).json([]);
+    // Get student profile for eligibility filtering
+    let detailStudent = null;
+    if (req.user && req.user.id) {
+      detailStudent = await DetailStudent.findOne({ user: req.user.id });
+      if (!hasAllRequiredFields(detailStudent)) {
+        return sendError(res, 403, 'You must complete all required profile sections to view available batches');
       }
     }
-
-    // Filter by mode (online or offline)
-    if (mode) {
-      filters.mode = mode;
-    }
-
-    // Filter by fee range
-    if (minFee || maxFee) {
-      filters.feePerStudent = {};
-      if (minFee) filters.feePerStudent.$gte = parseFloat(minFee); // Minimum fee
-      if (maxFee) filters.feePerStudent.$lte = parseFloat(maxFee); // Maximum fee
-    }
-
-    // Fetch batches (courses) that match the filters
-    // Select only required fields from each batch
+    const filters = await buildBatchFilters(req.body);
     const courses = await Batch.find(filters)
-      .select('subject batchStatus teacher mode feePerStudent')
-      .populate('teacher', 'fullname') // Get teacher's fullname
-      .sort({ createdAt: -1 }); // Show newest first
+      .select('subject batchStatus teacher mode feePerStudent requiredLevel')
+      .populate('teacherDetailId', 'user subjectsTaught') // for teacher details
+      .populate('teacherFullName', 'fullname') // for user info (name, email, etc.)
+      .sort({ createdAt: -1 });
 
-    // Format the output in a clean structure
-    const filteredCourses = courses.map(course => ({
+    // Filter out batches the student is not eligible for
+    let filteredCourses = courses;
+    if (detailStudent && detailStudent.education && detailStudent.education.currentLevel) {
+      filteredCourses = courses.filter(course =>
+        !course.requiredLevel || course.requiredLevel === detailStudent.education.currentLevel
+      );
+    }
+
+    filteredCourses = filteredCourses.map(course => ({
       subject: course.subject,
       status: course.batchStatus,
-      teacherName: course.teacher?.fullname,
+      teacherName: course.teacherFullName?.fullname,
       mode: course.mode,
-      fee: course.feePerStudent
+      fee: course.feePerStudent,
+      requiredLevel: course.requiredLevel
     }));
 
-    // Log the filters and result
-    console.log('Applied Filters:', filters, 'Filtered Courses:', filteredCourses);
-
-    // If no results, send 404 with message
     if (filteredCourses.length === 0) {
-      return res.status(404).json({ message: 'Search not found' });
+      return sendError(res, 404, 'Search not found');
     }
-
-    // Send the result back to the client
-    res.status(200).json(filteredCourses);
+    return sendSuccess(res, filteredCourses);
   } catch (err) {
-    console.error('Error in getAvailableBatches:', err.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.log(`Error in getAvailableBatches: ${err.message}`);
+    return sendError(res, 500, 'Internal Server Error');
   }
 };
-// Done ✅
 
-
-
-
-// 2. Apply/Enroll: Student applies to enroll in a batch
+/**
+ * POST /student-Flow/batches/apply
+ * Student applies to enroll in a batch
+ */
 exports.applyToBatch = async (req, res) => {
   try {
     const studentId = req.user.id;
-    const { batchId } = req.body;  // 🔁 batchId from body
-
-    // Validate batch ID
-    if (!mongoose.Types.ObjectId.isValid(batchId)) {
-      return res.status(400).json({ error: 'Invalid batch ID' });
+    const { batchId } = req.body;
+    if (!isValidObjectId(batchId)) {
+      return sendError(res, 400, 'Invalid batch ID');
     }
-
-    // Find student profile
     const detailStudent = await DetailStudent.findOne({ user: studentId });
     if (!detailStudent) {
-      return res.status(404).json({ error: 'Student profile not found. Please complete your profile first.' });
+      return sendError(res, 404, 'Student profile not found. Please complete your profile first.');
     }
-
-    // Check if profile is complete
+    if (!hasAllRequiredFields(detailStudent)) {
+      return sendError(res, 403, 'You must complete all required profile sections to apply for a batch');
+    }
     if (!detailStudent.isProfileComplete) {
-      return res.status(400).json({ error: 'Please complete your profile before enrolling in batches' });
+      return sendError(res, 400, 'Please complete your profile before enrolling in batches');
     }
-
-    // Find the batch
     const batch = await Batch.findById(batchId);
     if (!batch) {
-      return res.status(404).json({ error: 'Batch not found' });
+      return sendError(res, 404, 'Batch not found');
     }
-
-    // Check if batch is accepting enrollments
-    if (!['upcoming', 'ongoing'].includes(batch.status)) {
-      return res.status(400).json({ error: 'This batch is not accepting enrollments' });
+    // Eligibility check: student's currentLevel must match batch.requiredLevel
+    if (
+      batch.requiredLevel &&
+      (!detailStudent.education || detailStudent.education.currentLevel !== batch.requiredLevel)
+    ) {
+      return sendError(res, 403, 'You do not meet the required level for this batch');
     }
-
-    // Check if batch is full
+    if (!['upcoming', 'ongoing'].includes(batch.batchStatus)) {
+      return sendError(res, 400, 'This batch is not accepting enrollments');
+    }
     if (batch.students.length >= batch.maxStrength) {
-      return res.status(400).json({ error: 'Batch is full' });
+      return sendError(res, 400, 'Batch is full');
     }
-
-    // Check if already enrolled/applied
     const alreadyEnrolled = detailStudent.enrolledBatches.some(
       (enroll) => enroll.batch.toString() === batchId
     );
-
     if (alreadyEnrolled) {
-      return res.status(400).json({ error: 'Already enrolled in this batch' });
+      return sendError(res, 400, 'Already enrolled in this batch');
     }
-
-    // Check for approval requirement
     const requiresApproval = batch.requiresApproval || false;
     const enrollmentStatus = requiresApproval ? 'pending' : 'active';
-
-    // Add to enrolledBatches
     detailStudent.enrolledBatches.push({
       batch: batchId,
       status: enrollmentStatus,
@@ -149,28 +157,21 @@ exports.applyToBatch = async (req, res) => {
       progress: 0,
       feePaid: false
     });
-
     await detailStudent.save();
-
-    // Add student to Batch.students array
     await Batch.findByIdAndUpdate(batchId, {
       $addToSet: { students: detailStudent._id }
     });
-
     const message = requiresApproval
       ? 'Applied to batch successfully. Awaiting teacher approval.'
       : 'Enrolled in batch successfully.';
-
-    res.json({
+    return sendSuccess(res, {
       message,
       enrollmentStatus,
       batchId,
       enrollmentDate: new Date()
     });
-
   } catch (err) {
-    console.log(`Error in applyToBatch: ${err.message}`);
-    res.status(500).json({ error: err.message });
+    return sendError(res, 500, err.message);
   }
 };
 
