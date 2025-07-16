@@ -86,16 +86,8 @@ const detailTeacherValidator = [
 ];
 
 const batchValidator = [  
-  body('teacherFullName')
-    .notEmpty().withMessage('Teacher full name is required')
-    .isMongoId().withMessage('Teacher full name must be a valid Mongo ID'),
-  body('teacherDetailId')
-    .notEmpty().withMessage('Teacher detail ID is required')
-    .isMongoId().withMessage('Teacher detail ID must be a valid Mongo ID'),
-  body('students')
-    .optional().isArray().withMessage('Students must be an array'),
-  body('students.*')
-    .optional().isMongoId().withMessage('Each student must be a valid Mongo ID'),
+  
+  
   body('subject')
     .notEmpty().withMessage('Subject is required')
     .isString().withMessage('Subject must be a string')

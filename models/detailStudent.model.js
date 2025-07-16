@@ -37,55 +37,12 @@ const detailStudentSchema = new Schema({
             trim: true
         }
     },
-    subjects: [{
-        subject: {
-            type: String,
-            enum: [
-                'Mathematics',
-                'Physics',
-                'Chemistry',
-                'Biology',
-                'English',
-                'Hindi',
-                'History',
-                'Geography',
-                'Economics',
-                'Computer Science',
-                'Literature',
-                'Political Science',
-                'Sociology',
-                'Psychology',
-                'Art',
-                'Music',
-                'Physical Education',
-                'Environmental Science',
-                'Business Studies',
-                'Accountancy',
-                'Statistics',
-                'Philosophy',
-                'Religious Studies',
-                'Foreign Languages',
-                'Other'
-            ],
-            required: true
-        },
-        proficiencyLevel: {
-            type: String,
-            enum: ['beginner', 'intermediate', 'advanced'],
-            default: 'beginner'
-        },
-        targetScore: {
-            type: Number,
-            min: 0,
-            max: 100
-        },
-        currentScore: {
-            type: Number,
-            min: 0,
-            max: 100,
-            default: 0
-        }
-    }],
+    proficiencyLevel: {
+        type: String,
+        enum: ['beginner', 'intermediate', 'advanced'],
+        default: 'beginner'
+    },
+
     enrolledBatches: [{
         batch: {
             type: Schema.Types.ObjectId,
@@ -212,13 +169,12 @@ const detailStudentSchema = new Schema({
 
 // Indexes for better query performance
 detailStudentSchema.index({ 'enrolledBatches.batch': 1 });
-detailStudentSchema.index({ 'subjects.subject': 1 });
 detailStudentSchema.index({ isProfileComplete: 1 });
 detailStudentSchema.index({ 'education.currentLevel': 1 });
 
 // Virtual for phone number from user model
-detailStudentSchema.virtual('phone').get(function() {
-  return this.user ? this.user.phone : undefined;
+detailStudentSchema.virtual('phone').get(function () {
+    return this.user ? this.user.phone : undefined;
 });
 
 // Ensure virtual fields are included when converting to JSON

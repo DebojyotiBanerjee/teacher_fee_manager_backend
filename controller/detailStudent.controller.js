@@ -39,7 +39,7 @@ exports.createDetailStudent = async (req, res) => {
     }
 
     // Check if profile already exists
-    const { exists, profile } = await checkExistingProfile(DetailStudent, req.user._id);
+    const { exists  } = await checkExistingProfile(DetailStudent, req.user._id);
     if (exists) {
       return res.status(409).json({
         success: false,

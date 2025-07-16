@@ -22,45 +22,9 @@ exports.DetailStudent = [
   body('phone')
     .optional().isString().withMessage('Phone must be a string')
     .matches(/^[0-9]{10}$/).withMessage('Phone number must be 10 digits long')
-    .isMobilePhone().withMessage('Valid phone number is required'),
-  body('subjects')
-    .isArray().withMessage('Subjects must be an array'),
-  body('subjects.*.subject')
-    .notEmpty().withMessage('Subject is required')
-    .isString().withMessage('Subject must be a string')
-    .isIn([
-      'Mathematics',
-      'Physics',
-      'Chemistry',
-      'Biology',
-      'English',
-      'Hindi',
-      'History',
-      'Geography',
-      'Economics',
-      'Computer Science',
-      'Literature',
-      'Political Science',
-      'Sociology',
-      'Psychology',
-      'Art',
-      'Music',
-      'Physical Education',
-      'Environmental Science',
-      'Business Studies',
-      'Accountancy',
-      'Statistics',
-      'Philosophy',
-      'Religious Studies',
-      'Foreign Languages',
-      'Other'
-    ]).withMessage('Invalid subject'),
-  body('subjects.*.proficiencyLevel')
+    .isMobilePhone().withMessage('Valid phone number is required'),  
+  body('proficiencyLevel')
     .optional().isIn(['beginner', 'intermediate', 'advanced']).withMessage('Proficiency must be either beginner, intermediate, or advanced'),
-  body('subjects.*.targetScore')
-    .optional().isNumeric().withMessage('Target score must be a number'),
-  body('subjects.*.currentScore')
-    .optional().isNumeric().withMessage('Current score must be a number'),
   // Academic performance validation (optional)
   body('academicPerformance.averageScore')
     .optional().isNumeric().withMessage('Average score must be a number'),

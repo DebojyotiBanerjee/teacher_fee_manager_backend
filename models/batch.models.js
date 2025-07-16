@@ -1,20 +1,8 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
-const batchSchema = new Schema({    
-    teacherFullName: {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
-    teacherDetailId: {
-        type: Schema.Types.ObjectId,
-        ref: 'DetailTeacher',
-        required: true
-    },
-    students: [{
-         type: mongoose.Schema.Types.ObjectId,
-          ref: 'User' }],
+const batchSchema = new Schema({  
+  
     subject: {
         type: String,
         required: true,
