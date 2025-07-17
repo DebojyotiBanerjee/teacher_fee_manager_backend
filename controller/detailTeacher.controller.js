@@ -75,6 +75,7 @@ exports.createDetailTeacher = async (req, res) => {
 exports.getDetailTeacherById = async (req, res) => {
   try {
     logControllerAction('Get Teacher Detail', req.user);
+
     // Check role access
     const roleCheck = checkRoleAccess(req, 'teacher');
     if (!roleCheck.allowed) {
@@ -83,36 +84,39 @@ exports.getDetailTeacherById = async (req, res) => {
         message: roleCheck.message
       });
     }
-    // Use centralized populate options
+
+    // Try to find the teacher detail profile
     let query = DetailTeacher.findOne({ user: req.user._id });
     TEACHER_POPULATE_OPTIONS.forEach(opt => { query = query.populate(opt); });
     const detailTeacher = await query;
+
     if (!detailTeacher) {
-      // If no profile exists, return user info and all detailTeacher fields as null
+      // If no profile exists, return only the registration fields (basic user info), rest as empty values
       return sendSuccessResponse(
         res,
         {
-          user: {
-            fullname: req.user.fullname || '',
-            email: req.user.email || '',
-            role: req.user.role || '',
-            phone: req.user.phone || ''
-          },
+          fullname: req.user.fullname || '',
+          email: req.user.email || '',
+          role: req.user.role || '',
+          phone: req.user.phone || '',
           qualifications: [],
-          experience: [],
-          address: [],
+          experience: {},
+          address: {},
           subjectsTaught: [],
-          socialMedia: [],
+          socialMedia: {},
+          profilePic: '',
           teacherUserId: req.user._id,
           currentUser: {
             id: req.user._id,
             role: req.user.role
           }
         },
-        'Teacher detail not found. Showing basic user info.',
+        'No teacher profile found. Showing registration details only.',
         200
       );
     }
+
+    // If profile exists, return the full detail
     sendSuccessResponse(res, {
       ...detailTeacher.toObject(),
       teacherUserId: detailTeacher.user,
@@ -163,8 +167,7 @@ exports.updateDetailTeacher = async (req, res) => {
         req.user._id, 
         req.body, 
         {
-          user: 'fullname email role phone',
-          batches: 'batchName subject',          
+          user: 'fullname email role phone'
         }
       );
       

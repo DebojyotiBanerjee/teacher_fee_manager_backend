@@ -22,9 +22,11 @@ const detailTeacherValidator = [
   body('address.state')
     .optional().isString().withMessage('State must be a string'),
   body('address.pincode')
-    .optional().isString().withMessage('Pincode must be a string'),
-  body('address.country')
-    .optional().isString().withMessage('Country must be a string'),
+    .optional().isString().withMessage('Pincode must be a string'),  
+  body('profilePic')
+    .optional()
+    .isString().withMessage('Profile picture must be a string')
+    .isURL().withMessage('Profile picture must be a valid URL'),
   body('subjectsTaught')
     .isArray({ min: 1 }).withMessage('Subjects taught must be a non-empty array'),
   body('subjectsTaught.*')
@@ -33,7 +35,10 @@ const detailTeacherValidator = [
   body('socialMedia')
     .optional().isObject().withMessage('Social media must be an object'),
   body('socialMedia.linkedIn')
-    .optional().isString().withMessage('LinkedIn must be a string')
+    .optional().isString().withMessage('LinkedIn must be a string'),
+  body('user')
+    .notEmpty().withMessage('User is required')
+    .isMongoId().withMessage('User must be a valid Mongo ID'),
 ];
 
 const batchValidator = [

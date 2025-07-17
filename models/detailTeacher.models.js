@@ -1,7 +1,13 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
-const detailTeacherSchema = new Schema({     
+const detailTeacherSchema = new Schema({   
+  user: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    unique: true
+  },
   qualifications: [{
     degree: {
       type: String,
@@ -24,8 +30,7 @@ const detailTeacherSchema = new Schema({
     street: { type: String },
     city: { type: String },
     state: { type: String },
-    pincode: { type: String },
-    country: { type: String }
+    pincode: { type: String }    
   },
   subjectsTaught: [{
     type: String,
@@ -33,7 +38,11 @@ const detailTeacherSchema = new Schema({
   }],  
   socialMedia: {
     linkedIn: String
-  }  
+  },
+  profilePic: {
+    type: String,
+    trim: true
+  }
 }, {
   timestamps: true
 });
@@ -43,7 +52,6 @@ detailTeacherSchema.virtual('phone').get(function() {
 });
 
 
-detailTeacherSchema.set('toJSON', { virtuals: true });
-detailTeacherSchema.set('toObject', { virtuals: true });
+
 
 module.exports = mongoose.model('DetailTeacher', detailTeacherSchema);
