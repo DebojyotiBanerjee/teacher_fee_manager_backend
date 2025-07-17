@@ -71,7 +71,7 @@ exports.createDetailStudent = async (req, res) => {
 exports.getDetailStudentById = async (req, res) => {
   try {
     logControllerAction('Get Student Detail', req.user);
-    
+
     // Check role access
     const roleCheck = checkRoleAccess(req, 'student');
     if (!roleCheck.allowed) {
@@ -81,19 +81,38 @@ exports.getDetailStudentById = async (req, res) => {
       });
     }
 
+    // Try to get the student detail profile
     const detailStudent = await getProfile(DetailStudent, req.user._id, {
       user: 'fullname email role phone',
       enrolledBatches: 'batchName subject',
       subjects: 'name'
     });
-    find
+
     if (!detailStudent) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'Student detail not found'
-      });
+      // If no profile exists, return user info and empty student detail fields
+      return sendSuccessResponse(
+        res,
+        {
+          user: {
+            fullname: req.user.fullname || '',
+            email: req.user.email || '',
+            role: req.user.role || '',
+            phone: req.user.phone || ''
+          },
+          enrolledBatches: [],
+          subjects: [],
+          studentUserId: req.user._id,
+          currentUser: {
+            id: req.user._id,
+            role: req.user.role
+          }
+        },
+        'Student detail not found. Showing basic user info.',
+        200
+      );
     }
-    
+
+    // If profile exists, return the full detail
     sendSuccessResponse(res, {
       ...detailStudent.toObject(),
       studentUserId: detailStudent.user,
@@ -102,7 +121,6 @@ exports.getDetailStudentById = async (req, res) => {
         role: req.user.role
       }
     }, 'Student detail retrieved successfully');
-    
   } catch (err) {
     handleError(err, res, 'Failed to retrieve student detail');
   }

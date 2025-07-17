@@ -88,10 +88,30 @@ exports.getDetailTeacherById = async (req, res) => {
     TEACHER_POPULATE_OPTIONS.forEach(opt => { query = query.populate(opt); });
     const detailTeacher = await query;
     if (!detailTeacher) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'Teacher detail not found'
-      });
+      // If no profile exists, return user info and all detailTeacher fields as null
+      return sendSuccessResponse(
+        res,
+        {
+          user: {
+            fullname: req.user.fullname || '',
+            email: req.user.email || '',
+            role: req.user.role || '',
+            phone: req.user.phone || ''
+          },
+          qualifications: [],
+          experience: [],
+          address: [],
+          subjectsTaught: [],
+          socialMedia: [],
+          teacherUserId: req.user._id,
+          currentUser: {
+            id: req.user._id,
+            role: req.user.role
+          }
+        },
+        'Teacher detail not found. Showing basic user info.',
+        200
+      );
     }
     sendSuccessResponse(res, {
       ...detailTeacher.toObject(),

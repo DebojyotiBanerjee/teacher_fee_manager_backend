@@ -1,4 +1,5 @@
 const Course = require('../models/course.models');
+const DetailTeacher = require('../models/detailTeacher.models');
 
 // Helper to check teacher role
 function checkTeacherRole(req, res) {
@@ -9,9 +10,20 @@ function checkTeacherRole(req, res) {
   return true;
 }
 
+// Helper to check if teacher has a complete profile
+async function checkTeacherProfileComplete(req, res) {
+  const detail = await DetailTeacher.findOne({ user: req.user._id });
+  if (!detail || !detail.isProfileComplete) {
+    res.status(403).json({ success: false, message: 'You must complete your teacher profile before managing courses.' });
+    return false;
+  }
+  return true;
+}
+
 // Create a new course
 exports.createCourse = async (req, res) => {
   if (!checkTeacherRole(req, res)) return;
+  if (!(await checkTeacherProfileComplete(req, res))) return;
   try {
     const course = new Course(req.body);
     await course.save();
@@ -24,8 +36,8 @@ exports.createCourse = async (req, res) => {
 // Get all courses
 exports.getCourses = async (req, res) => {
   if (!checkTeacherRole(req, res)) return;
+  if (!(await checkTeacherProfileComplete(req, res))) return;
   try {
-    // If teacherName is a reference, populate it. If not, just find all.
     const courses = await Course.find().populate('teacherName', 'fullname email');
     res.json({ success: true, data: courses });
   } catch (err) {
@@ -36,6 +48,7 @@ exports.getCourses = async (req, res) => {
 // Get a single course by ID
 exports.getCourseById = async (req, res) => {
   if (!checkTeacherRole(req, res)) return;
+  if (!(await checkTeacherProfileComplete(req, res))) return;
   try {
     const course = await Course.findById(req.params.id);
     if (!course) {
@@ -50,6 +63,7 @@ exports.getCourseById = async (req, res) => {
 // Update a course by ID
 exports.updateCourse = async (req, res) => {
   if (!checkTeacherRole(req, res)) return;
+  if (!(await checkTeacherProfileComplete(req, res))) return;
   try {
     const course = await Course.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     if (!course) {
@@ -64,6 +78,7 @@ exports.updateCourse = async (req, res) => {
 // Delete a course by ID
 exports.deleteCourse = async (req, res) => {
   if (!checkTeacherRole(req, res)) return;
+  if (!(await checkTeacherProfileComplete(req, res))) return;
   try {
     const course = await Course.findByIdAndDelete(req.params.id);
     if (!course) {
