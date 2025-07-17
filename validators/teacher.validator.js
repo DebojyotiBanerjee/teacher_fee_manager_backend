@@ -1,9 +1,6 @@
 const { body } = require('express-validator');
 
-const detailTeacherValidator = [
-  body('user')
-    .notEmpty().withMessage('User is required')
-    .isMongoId().withMessage('User must be a valid Mongo ID'),
+const detailTeacherValidator = [  
   body('qualifications')
     .isArray({ min: 1 }).withMessage('Qualifications must be a non-empty array'),
   body('qualifications.*.degree')
