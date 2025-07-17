@@ -2,11 +2,6 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const detailStudentSchema = new Schema({
-    user: {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
     gender: {
         type: String,
         enum: ['male', 'female', 'other', 'prefer_not_to_say'],
@@ -36,71 +31,6 @@ const detailStudentSchema = new Schema({
             type: String,
             trim: true
         }
-    },
-    proficiencyLevel: {
-        type: String,
-        enum: ['beginner', 'intermediate', 'advanced'],
-        default: 'beginner'
-    },
-
-    enrolledBatches: [{
-        batch: {
-            type: Schema.Types.ObjectId,
-            ref: 'Batch'
-        },
-        enrollmentDate: {
-            type: Date,
-            default: Date.now
-        },
-        status: {
-            type: String,
-            enum: ['active', 'completed', 'dropped'],
-            default: 'active'
-        },
-        attendance: {
-            present: {
-                type: Number,
-                default: 0
-            },
-            total: {
-                type: Number,
-                default: 0
-            }
-        },
-        assignments: [{
-            title: String,
-            dueDate: Date,
-            assignmentStatus: {
-                type: String,
-                enum: ['pending', 'submitted', 'graded'],
-                default: 'pending'
-            },
-            score: {
-                type: Number,
-                min: 0,
-                max: 100
-            }
-        }],
-        progress: {
-            type: Number,
-            min: 0,
-            max: 100,
-            default: 0
-        },
-        feePaid: {
-            type: Boolean,
-            default: false
-        }
-    }],
-    academicPerformance: {
-        averageScore: {
-            type: Number,
-            min: 0,
-            max: 100,
-            default: 0
-        },
-        strengths: [String],
-        areasForImprovement: [String]
     },
     guardian: {
         name: {
@@ -136,33 +66,9 @@ const detailStudentSchema = new Schema({
     },
     dob: {
         type: Date
-    },
-    status: {
-        type: String,
-        enum: ['active', 'inactive'],
-        default: 'active'
-    },
-    location: {
-        type: String,
-        trim: true
-    },
-
-    // teacher available classes 
-    classPreferences: {
-        daysOfWeek: [{
-            type: String,
-            enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-        }],
-        preferredTimeSlot: {
-            type: String,
-            enum: ['Morning', 'Afternoon', 'Evening'],
-            default: 'Evening'
-        }
-    },
-    isProfileComplete: {
-        type: Boolean,
-        default: false
     }
+
+
 }, {
     timestamps: true
 });

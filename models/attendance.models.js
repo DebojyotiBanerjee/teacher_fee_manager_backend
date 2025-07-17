@@ -23,7 +23,8 @@ const attendanceSchema = new Schema({
     },
     notes: {
         type: String,
-        trim: true
+        trim: true,
+        maxlength: 100
     }
 }, {
     timestamps: true

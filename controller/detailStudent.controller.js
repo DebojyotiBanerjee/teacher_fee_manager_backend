@@ -1,3 +1,4 @@
+const { findById } = require('../models/batch.models');
 const DetailStudent = require('../models/detailStudent.model');
 const { 
   handleError, 
@@ -39,7 +40,7 @@ exports.createDetailStudent = async (req, res) => {
     }
 
     // Check if profile already exists
-    const { exists  } = await checkExistingProfile(DetailStudent, req.user._id);
+    const {exists} = await checkExistingProfile(DetailStudent, req.user._id);
     if (exists) {
       return res.status(409).json({
         success: false,
@@ -85,7 +86,7 @@ exports.getDetailStudentById = async (req, res) => {
       enrolledBatches: 'batchName subject',
       subjects: 'name'
     });
-    
+    find
     if (!detailStudent) {
       return res.status(404).json({ 
         success: false,
