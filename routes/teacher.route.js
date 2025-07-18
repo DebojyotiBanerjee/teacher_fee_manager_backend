@@ -49,13 +49,10 @@ router.post('/attendance/mark', authenticateTeacher, Attendance, validator, teac
 router.post('/course', authenticateTeacher, CourseValidator, validator, courseController.createCourse);
 router.put('/course/:id', authenticateTeacher, CourseValidator, validator, courseController.updateCourse);
 router.get('/course/my', authenticateTeacher, courseController.getMyCourse);
+router.get('/course/:id', authenticateTeacher, courseController.getMyCourseById);
 router.delete('/course/:id', authenticateTeacher, courseController.deleteCourse);
 
-// Student Course Access
-router.get('/courses', courseController.getAllCourses);
-router.get('/course/:id', courseController.getCourseById);
-router.post('/course/:id/enroll', authenticateStudent, courseController.enrollInCourse);
-router.delete('/course/:id/unenroll', authenticateStudent, courseController.unenrollFromCourse);
+
 
 
 module.exports = router;

@@ -80,7 +80,7 @@ exports.getMyCourse = async (req, res) => {
     );
   }
 
-  // Pagination and filtering
+  // Pagination
   const page = parseInt(req.query.page) > 0 ? parseInt(req.query.page) : 1;
   const limit = parseInt(req.query.limit) > 0 ? parseInt(req.query.limit) : 10;
   const skip = (page - 1) * limit;
@@ -92,13 +92,19 @@ exports.getMyCourse = async (req, res) => {
   if (req.query.duration) filter.duration = req.query.duration;
   if (req.query.title) filter.title = { $regex: req.query.title, $options: 'i' };
 
+  // Sorting
+  const sortBy = req.query.sortBy || 'createdAt';
+  const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+  const sort = { [sortBy]: sortOrder };
+
   try {
     const [courses, total] = await Promise.all([
       Course.find(filter)
         .populate('teacher', 'fullname email')
         .select('title subtitle description prerequisites fee duration syllabus teacher')
         .skip(skip)
-        .limit(limit),
+        .limit(limit)
+        .sort(sort),
       Course.countDocuments(filter)
     ]);
 
@@ -118,6 +124,25 @@ exports.getMyCourse = async (req, res) => {
   }
 };
 
+// Teacher: View their own course by ID
+exports.getMyCourseById = async (req, res) => {
+  logControllerAction('Get My Course By ID', req.user, { params: req.params });
+  if (!(await canAccessCourse(req, DetailTeacher, Course))) {
+    return handleError(
+      { name: 'Forbidden', message: 'You must be a teacher with a complete profile.' },
+      res,
+      'You must be a teacher with a complete profile.'
+    );
+  }
+  try {
+    const course = await Course.findOne({ _id: req.params.id, teacher: req.user._id }).populate('teacher', 'fullname email');
+    if (!course) return handleError({ name: 'NotFound' }, res, 'Course not found or you do not own this course');
+    sendSuccessResponse(res, course, 'Course retrieved successfully');
+  } catch (err) {
+    handleError(err, res, 'Failed to retrieve course');
+  }
+};
+
 // Student: View all courses
 exports.getAllCourses = async (req, res) => {
   logControllerAction('Get All Courses', req.user);
@@ -128,25 +153,32 @@ exports.getAllCourses = async (req, res) => {
       'Only students can view courses.'
     );
   }
-  try {
-    // Pagination and filtering
-    const page = parseInt(req.query.page) > 0 ? parseInt(req.query.page) : 1;
-    const limit = parseInt(req.query.limit) > 0 ? parseInt(req.query.limit) : 10;
-    const skip = (page - 1) * limit;
-    const filter = {};
-    if (req.query.feeMin) filter.fee = { ...filter.fee, $gte: Number(req.query.feeMin) };
-    if (req.query.feeMax) filter.fee = { ...filter.fee, $lte: Number(req.query.feeMax) };
-    if (req.query.duration) filter.duration = req.query.duration;
-    if (req.query.teacher) filter.teacher = req.query.teacher;
-    if (req.query.title) filter.title = { $regex: req.query.title, $options: 'i' };
+  // Pagination
+  const page = parseInt(req.query.page) > 0 ? parseInt(req.query.page) : 1;
+  const limit = parseInt(req.query.limit) > 0 ? parseInt(req.query.limit) : 10;
+  const skip = (page - 1) * limit;
 
-    // Students can view all things that the teacher created, so we populate all teacher fields
+  // Filtering
+  const filter = {};
+  if (req.query.feeMin) filter.fee = { ...filter.fee, $gte: Number(req.query.feeMin) };
+  if (req.query.feeMax) filter.fee = { ...filter.fee, $lte: Number(req.query.feeMax) };
+  if (req.query.duration) filter.duration = req.query.duration;
+  if (req.query.teacher) filter.teacher = req.query.teacher;
+  if (req.query.title) filter.title = { $regex: req.query.title, $options: 'i' };
+
+  // Sorting
+  const sortBy = req.query.sortBy || 'createdAt';
+  const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+  const sort = { [sortBy]: sortOrder };
+
+  try {
     const [courses, total] = await Promise.all([
       Course.find(filter)
-        .populate('teacher', 'fullname email') // teacher basic info
-        .select('title subtitle description prerequisites fee duration syllabus teacher createdAt updatedAt') // all course fields
+        .populate('teacher', 'fullname email')
+        .select('title subtitle description prerequisites fee duration syllabus teacher createdAt updatedAt')
         .skip(skip)
-        .limit(limit),
+        .limit(limit)
+        .sort(sort),
       Course.countDocuments(filter)
     ]);
     sendSuccessResponse(
