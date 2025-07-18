@@ -3,73 +3,6 @@ const Attendance = require('../models/attendance.models');
 const DetailTeacher = require('../models/detailTeacher.models');
 const DetailStudent = require('../models/detailStudent.model');
 
-// Get teacher's batch information
-exports.getTeacherBatches = async (req, res) => {
-  try {
-    console.log('Get Teacher Batches - User:', req.user);
-    console.log('Get Teacher Batches - User ID:', req.user._id);
-    console.log('Get Teacher Batches - User Role:', req.user.role);
-    
-    // Check if user is a teacher
-    if (req.user.role !== 'teacher') {
-      console.log('Access denied - User role:', req.user.role);
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. Only teachers can view batch information.'
-      });
-    }
-
-    // Check if teacher has a detail profile
-    const teacherDetail = await DetailTeacher.findOne({ user: req.user._id });
-    if (!teacherDetail) {
-      console.log('Teacher detail profile not found for user:', req.user._id);
-      return res.status(400).json({
-        success: false,
-        message: 'Teacher detail profile not found. Please create your teacher profile first.',
-        requiredAction: 'create_teacher_profile'
-      });
-    }
-
-    console.log('Teacher detail profile found:', teacherDetail._id);
-
-    // Get all batches for this teacher
-    const batches = await TeacherEnrollment.find({ teacher: req.user._id })
-      .populate('students', 'fullname email')
-      .sort({ createdAt: -1 });
-
-    // Get teacher's basic information
-    const teacherInfo = {
-      teacherDetailId: teacherDetail._id,
-      qualifications: teacherDetail.qualifications,
-      subjectsTaught: teacherDetail.subjectsTaught,
-      experience: teacherDetail.experience,
-      bio: teacherDetail.bio,
-      averageRating: teacherDetail.averageRating,
-      totalRatings: teacherDetail.totalRatings
-    };
-
-    console.log('Get Teacher Batches - Found batches:', batches.length);
-    
-    res.json({
-      success: true,
-      message: 'Teacher batch information retrieved successfully',
-      data: {
-        teacherInfo,
-        totalBatches: batches.length,
-        batches,
-        teacherDetailId: teacherDetail._id
-      }
-    });
-  } catch (err) {
-    console.error('Get Teacher Batches Error:', err);
-    res.status(400).json({ 
-      success: false,
-      message: 'Failed to retrieve teacher batch information',
-      error: err.message 
-    });
-  }
-};
-
 // Mark attendance for a student
 exports.markAttendance = async (req, res) => {
   try {
@@ -192,84 +125,7 @@ exports.markAttendance = async (req, res) => {
   }
 };
 
-// Get attendance for a specific student
-exports.getStudentAttendance = async (req, res) => {
-  try {
-    console.log('Get Student Attendance - User:', req.user);
-    console.log('Get Student Attendance - User ID:', req.user._id);
-    console.log('Get Student Attendance - User Role:', req.user.role);
-    
-    // Check if user is a teacherz
-    if (req.user.role !== 'teacher') {
-      console.log('Access denied - User role:', req.user.role);
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. Only teachers can view attendance.'
-      });
-    }
 
-    // Check if teacher has a detail profile
-    const teacherDetail = await DetailTeacher.findOne({ user: req.user._id });
-    if (!teacherDetail) {
-      console.log('Teacher detail profile not found for user:', req.user._id);
-      return res.status(400).json({
-        success: false,
-        message: 'Teacher detail profile not found. Please create your teacher profile first.',
-        requiredAction: 'create_teacher_profile'
-      });
-    }
-
-    console.log('Teacher detail profile found:', teacherDetail._id);
-
-    const { studentId } = req.query;
-
-    if (!studentId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Student ID is required'
-      });
-    }
-
-    // Check if student exists
-    const student = await DetailStudent.findById(studentId);
-    if (!student) {
-      console.log('Student not found');
-      return res.status(404).json({
-        success: false,
-        message: 'Student not found'
-      });
-    }
-
-    console.log('Student found:', student.user);
-
-    // Get attendance for this student and teacher
-    const attendanceRecords = await Attendance.find({
-      teacherDetailId: teacherDetail._id,
-      student: studentId
-    }).sort({ date: -1 });
-
-    console.log('Found attendance records for student:', attendanceRecords.length);
-
-    res.json({
-      success: true,
-      message: 'Student attendance records retrieved successfully',
-      data: {
-        studentName: student.user,
-        totalRecords: attendanceRecords.length,
-        attendance: attendanceRecords,
-        teacherDetailId: teacherDetail._id
-      }
-    });
-
-  } catch (err) {
-    console.error('Get Student Attendance Error:', err);
-    res.status(400).json({ 
-      success: false,
-      message: 'Failed to retrieve student attendance records',
-      error: err.message 
-    });
-  }
-};
 
 // Create a new batch (enrollment)
 exports.createBatch = async (req, res) => {
@@ -461,50 +317,29 @@ exports.deleteBatch = async (req, res) => {
 
 // View all batches for the logged-in teacher
 exports.viewMyBatches = async (req, res) => {
-  try {
-    console.log('View My Batches - User:', req.user);
-    console.log('View My Batches - User ID:', req.user._id);
-    console.log('View My Batches - User Role:', req.user.role);
-    
+  try {   
     // Check if user is a teacher
     if (req.user.role !== 'teacher') {
-      console.log('Access denied - User role:', req.user.role);
       return res.status(403).json({
         success: false,
         message: 'Access denied. Only teachers can view batches.'
       });
     }
-
     // Check if teacher has a detail profile
     const teacherDetail = await DetailTeacher.findOne({ user: req.user._id });
     if (!teacherDetail) {
-      console.log('Teacher detail profile not found for user:', req.user._id);
       return res.status(400).json({
         success: false,
         message: 'Teacher detail profile not found. Please create your teacher profile first.',
         requiredAction: 'create_teacher_profile'
       });
     }
-
-    console.log('Teacher detail profile found:', teacherDetail._id);
-
+    // Only return the batches array
     const batches = await TeacherEnrollment.find({ teacher: req.user._id })
       .populate('students', 'fullname email')
       .sort({ createdAt: -1 });
-    
-    console.log('View My Batches - Found batches:', batches.length);
-    
-    res.json({
-      success: true,
-      message: 'Batches retrieved successfully',
-      data: {
-        totalBatches: batches.length,
-        batches,
-        teacherDetailId: teacherDetail._id
-      }
-    });
+    res.json(batches);
   } catch (err) {
-    console.error('View My Batches Error:', err);
     res.status(400).json({ 
       success: false,
       message: 'Failed to retrieve batches',
@@ -544,25 +379,32 @@ exports.viewStudentsInBatch = async (req, res) => {
 
     const batches = await TeacherEnrollment.find({ teacher: req.user._id })
       .populate('students', 'fullname email phone');
-    
     const students = batches.flatMap(batch => batch.students);
     const uniqueStudents = students.filter((student, index, self) => 
       index === self.findIndex(s => s._id.toString() === student._id.toString())
     );
-    
-    console.log('View Students In Batch - Found unique students:', uniqueStudents.length);
-    
+    // Fetch attendance for each student (refactored from getStudentAttendance)
+    const teacherDetailId = teacherDetail._id;
+    const studentsWithAttendance = await Promise.all(uniqueStudents.map(async (student) => {
+      const attendanceRecords = await Attendance.find({
+        teacherDetailId,
+        student: student._id
+      }).sort({ date: -1 });
+      return {
+        ...student.toObject(),
+        attendance: attendanceRecords
+      };
+    }));
     res.json({
       success: true,
       message: 'Students retrieved successfully',
       data: {
-        totalStudents: uniqueStudents.length,
-        students: uniqueStudents,
-        teacherDetailId: teacherDetail._id
+        totalStudents: studentsWithAttendance.length,
+        students: studentsWithAttendance,
+        teacherDetailId
       }
     });
   } catch (err) {
-    console.error('View Students In Batch Error:', err);
     res.status(400).json({ 
       success: false,
       message: 'Failed to retrieve students',

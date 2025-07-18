@@ -1,3 +1,4 @@
+const { findById } = require('../models/batch.models');
 const DetailStudent = require('../models/detailStudent.model');
 const { 
   handleError, 
@@ -39,7 +40,7 @@ exports.createDetailStudent = async (req, res) => {
     }
 
     // Check if profile already exists
-    const { exists, profile } = await checkExistingProfile(DetailStudent, req.user._id);
+    const {exists} = await checkExistingProfile(DetailStudent, req.user._id);
     if (exists) {
       return res.status(409).json({
         success: false,
@@ -52,7 +53,7 @@ exports.createDetailStudent = async (req, res) => {
       DetailStudent, 
       req.body, 
       req.user._id, 
-      'user fullname email role phone'
+      'user' // Only populate user
     );
     
     sendSuccessResponse(res, {
@@ -70,7 +71,7 @@ exports.createDetailStudent = async (req, res) => {
 exports.getDetailStudentById = async (req, res) => {
   try {
     logControllerAction('Get Student Detail', req.user);
-    
+
     // Check role access
     const roleCheck = checkRoleAccess(req, 'student');
     if (!roleCheck.allowed) {
@@ -80,19 +81,39 @@ exports.getDetailStudentById = async (req, res) => {
       });
     }
 
+    // Try to get the student detail profile
     const detailStudent = await getProfile(DetailStudent, req.user._id, {
-      user: 'fullname email role phone',
-      enrolledBatches: 'batchName subject',
-      subjects: 'name'
+      user: 'fullname email role phone' // This will be handled as select fields for user
     });
-    
+
     if (!detailStudent) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'Student detail not found'
-      });
+      // If no profile exists, return registration fields and empty detail fields
+      return sendSuccessResponse(
+        res,
+        {
+          fullname: req.user.fullname || '',
+          email: req.user.email || '',
+          role: req.user.role || '',
+          phone: req.user.phone || '',
+          gender: '',
+          education: {},
+          guardian: {},
+          address: {},
+          dob: '',
+          enrolledBatches: [],
+          subjects: [],
+          studentUserId: req.user._id,
+          currentUser: {
+            id: req.user._id,
+            role: req.user.role
+          }
+        },
+        'Student detail not found. Showing registration details only.',
+        200
+      );
     }
-    
+
+    // If profile exists, return the full detail
     sendSuccessResponse(res, {
       ...detailStudent.toObject(),
       studentUserId: detailStudent.user,
@@ -101,7 +122,6 @@ exports.getDetailStudentById = async (req, res) => {
         role: req.user.role
       }
     }, 'Student detail retrieved successfully');
-    
   } catch (err) {
     handleError(err, res, 'Failed to retrieve student detail');
   }
@@ -114,7 +134,11 @@ exports.updateDetailStudent = async (req, res) => {
     
     // Sanitize input
     sanitizeRequest(req);
-    
+
+    // Prevent updating email and role fields
+    if ('email' in req.body) delete req.body.email;
+    if ('role' in req.body) delete req.body.role;
+
     // Check role access
     const roleCheck = checkRoleAccess(req, 'student');
     if (!roleCheck.allowed) {
@@ -125,15 +149,29 @@ exports.updateDetailStudent = async (req, res) => {
     }
 
     // Check if profile exists
-    const { exists, profile } = await checkExistingProfile(DetailStudent, req.user._id);
-    
+    const { exists } = await checkExistingProfile(DetailStudent, req.user._id);
+
+    // Allow updating fullname and phone in user model
+    const allowedUserFields = ['fullname', 'phone'];
+    const userUpdate = {};
+    allowedUserFields.forEach(field => {
+      if (field in req.body) userUpdate[field] = req.body[field];
+    });
+    if (Object.keys(userUpdate).length > 0) {
+      await require('../models/user.models').findByIdAndUpdate(
+        req.user._id,
+        { $set: userUpdate },
+        { new: true }
+      );
+    }
+
     if (!exists) {
-      // Create new profile if it doesn't exist
+      // Create new student detail profile
       const savedStudent = await createProfile(
         DetailStudent, 
         req.body, 
         req.user._id, 
-        'user fullname email role phone'
+        'user' // Only populate user
       );
       
       sendSuccessResponse(res, savedStudent.toObject(), 'Student detail created successfully', 201);
@@ -144,9 +182,7 @@ exports.updateDetailStudent = async (req, res) => {
         req.user._id, 
         req.body, 
         {
-          user: 'fullname email role phone',
-          enrolledBatches: 'batchName subject',
-          subjects: 'name'
+          user: 'fullname email role phone' // This will be handled as select fields for user
         }
       );
       

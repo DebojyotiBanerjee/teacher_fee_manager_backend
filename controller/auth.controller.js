@@ -274,8 +274,10 @@ exports.login = async (req, res) => {
         message: 'Invalid credentials'
       });
     }
+
+    // Always generate and send new OTP if user is authenticated but not verified
+    let otpSent = false;
     if (!user.isVerified) {
-      // Generate and send new OTP
       let newOTP;
       do {
         newOTP = generateOTP();
@@ -285,12 +287,7 @@ exports.login = async (req, res) => {
       user.otpExpiry = otpExpiry;
       await user.save();
       await sendEmailOTP(user.email, newOTP);
-
-      return res.status(200).json({
-        success: false,
-        message: 'Email is not verified. A new OTP has been sent to your email. Please verify to continue.',
-        data: { email: user.email }
-      });
+      otpSent = true;
     }
 
     const accessToken = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY_SECONDS });
@@ -309,6 +306,19 @@ exports.login = async (req, res) => {
       sameSite: "Lax",
       maxAge: REFRESH_TOKEN_EXPIRY_MS
     });
+
+    // If user is not verified, inform client that OTP was sent and require verification
+    if (!user.isVerified) {
+      return res.status(200).json({
+        success: false,
+        message: 'Email is not verified. A new OTP has been sent to your email. Please verify to continue.',
+        data: {
+          email: user.email,
+          isAuthenticated: true,
+          isVerified: false
+        }
+      });
+    }
 
     res.status(200).json({
       success: true,

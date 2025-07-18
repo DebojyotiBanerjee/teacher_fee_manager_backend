@@ -22,56 +22,8 @@ exports.DetailStudent = [
   body('phone')
     .optional().isString().withMessage('Phone must be a string')
     .matches(/^[0-9]{10}$/).withMessage('Phone number must be 10 digits long')
-    .isMobilePhone().withMessage('Valid phone number is required'),
-  body('subjects')
-    .isArray().withMessage('Subjects must be an array'),
-  body('subjects.*.subject')
-    .notEmpty().withMessage('Subject is required')
-    .isString().withMessage('Subject must be a string')
-    .isIn([
-      'Mathematics',
-      'Physics',
-      'Chemistry',
-      'Biology',
-      'English',
-      'Hindi',
-      'History',
-      'Geography',
-      'Economics',
-      'Computer Science',
-      'Literature',
-      'Political Science',
-      'Sociology',
-      'Psychology',
-      'Art',
-      'Music',
-      'Physical Education',
-      'Environmental Science',
-      'Business Studies',
-      'Accountancy',
-      'Statistics',
-      'Philosophy',
-      'Religious Studies',
-      'Foreign Languages',
-      'Other'
-    ]).withMessage('Invalid subject'),
-  body('subjects.*.proficiencyLevel')
-    .optional().isIn(['beginner', 'intermediate', 'advanced']).withMessage('Proficiency must be either beginner, intermediate, or advanced'),
-  body('subjects.*.targetScore')
-    .optional().isNumeric().withMessage('Target score must be a number'),
-  body('subjects.*.currentScore')
-    .optional().isNumeric().withMessage('Current score must be a number'),
-  // Academic performance validation (optional)
-  body('academicPerformance.averageScore')
-    .optional().isNumeric().withMessage('Average score must be a number'),
-  body('academicPerformance.strengths')
-    .optional().isArray().withMessage('Strengths must be an array'),
-  body('academicPerformance.strengths.*')
-    .optional().isString().withMessage('Each strength must be a string'),
-  body('academicPerformance.areasForImprovement')
-    .optional().isArray().withMessage('Areas for improvement must be an array'),
-  body('academicPerformance.areasForImprovement.*')
-    .optional().isString().withMessage('Each area for improvement must be a string'),
+    .isMobilePhone().withMessage('Valid phone number is required'),   
+  
   // Guardian validation
   body('guardian.name')
     .notEmpty().withMessage('Guardian name is required')
@@ -96,49 +48,10 @@ exports.DetailStudent = [
   body('address.pincode')
     .optional().isString().withMessage('Pincode must be a string'),
   body('address.country')
-    .optional().isString().withMessage('Country must be a string'),
-  body('dob')
-    .optional().isISO8601().withMessage('Date of birth must be a valid date'),
-  body('status')
-    .optional().isIn(['active', 'inactive']).withMessage('Status must be either active or inactive'),
-  body('location')
-    .optional().isString().withMessage('Location must be a string'),
+    .optional().isString().withMessage('Country must be a string'),  
+  
   // Date of birth validation (optional)
   body('dob')
-    .optional().isISO8601().withMessage('Date of birth must be a valid date'),
-  // Enrolled batches validation (optional)
-  body('enrolledBatches')
-    .optional().isArray().withMessage('Enrolled batches must be an array'),
-  body('enrolledBatches.*.batch')
-    .optional().isMongoId().withMessage('Batch must be a valid Mongo ID'),
-  body('enrolledBatches.*.enrollmentDate')
-    .optional().isISO8601().withMessage('Enrollment date must be a valid date'),
-  body('enrolledBatches.*.status')
-    .optional().isIn(['active', 'completed', 'dropped']).withMessage('Enrollment status must be one of: active, completed, dropped'),
-  body('enrolledBatches.*.attendance.present')
-    .optional().isNumeric().withMessage('Attendance present must be a number'),
-  body('enrolledBatches.*.attendance.total')
-    .optional().isNumeric().withMessage('Attendance total must be a number'),
-  // Assignment validation (optional)
-  body('enrolledBatches.*.assignments')
-    .optional().isArray().withMessage('Assignments must be an array'),
-  body('enrolledBatches.*.assignments.*.title')
-    .optional().isString().withMessage('Assignment title must be a string'),
-  body('enrolledBatches.*.assignments.*.dueDate')
-    .optional().isISO8601().withMessage('Assignment due date must be a valid date'),
-  body('enrolledBatches.*.assignments.*.assignmentStatus')
-    .optional().isIn(['pending', 'submitted', 'graded']).withMessage('Assignment status must be one of: pending, submitted, graded'),
-  body('enrolledBatches.*.assignments.*.score')
-    .optional().isNumeric().withMessage('Assignment score must be a number'),
-  body('enrolledBatches.*.progress')
-    .optional().isNumeric().withMessage('Progress must be a number'),
-  body('enrolledBatches.*.feePaid')
-    .optional().isBoolean().withMessage('Fee paid must be a boolean'),
-  // Class preferences validation (optional)
-  body('classPreferences.daysOfWeek')
-    .optional().isArray().withMessage('Days of week must be an array'),
-  body('classPreferences.daysOfWeek.*')
-    .optional().isIn(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']).withMessage('Invalid day of week'),
-  body('classPreferences.preferredTimeSlot')
-    .optional().isIn(['Morning', 'Afternoon', 'Evening']).withMessage('Preferred time slot must be Morning, Afternoon, or Evening')
+    .optional().isISO8601().withMessage('Date of birth must be a valid date'),  
+  
 ];

@@ -1,22 +1,10 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
-const batchSchema = new Schema({    
-    teacherFullName: {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
-    teacherDetailId: {
-        type: Schema.Types.ObjectId,
-        ref: 'DetailTeacher',
-        required: true
-    },
-    students: [{
-         type: mongoose.Schema.Types.ObjectId,
-          ref: 'User' }],
+const batchSchema = new Schema({
+
     subject: {
-        type: String,
+        type: [String],
         required: true,
         trim: true
     },
@@ -30,7 +18,7 @@ const batchSchema = new Schema({
         required: true
     },
     time: {
-        type: String, // e.g., "10:00 AM - 12:00 PM"
+        type: String, 
         required: true
     },
     maxStrength: {
@@ -42,44 +30,16 @@ const batchSchema = new Schema({
         type: String,
         enum: ['online', 'offline', 'hybrid'],
         required: true
-    },
-    feePerStudent: {
-        type: Number,
-        required: true,
-        min: 0
-    },
-    location: {
-        type: String,
-        required: function () { return this.mode !== 'online'; }, // Required if not online
-        trim: true
-    },
+    },    
     daysOfWeek: {
-        type: [String], // e.g., ['Monday', 'Wednesday', 'Friday']
-        required: true
-    },
-    batchStatus: {
-        type: String,
-        enum: ['upcoming', 'ongoing', 'completed', 'cancelled'],
-        default: 'upcoming'
-    },
-    requiresApproval: {
-        type: Boolean,
-        default: false
-    },
-    requiredLevel: {
-        type: String,
-        enum: ['primary', 'secondary', 'higher_secondary', 'undergraduate', 'postgraduate'],
+        type: [String], 
         required: true
     },
     description: {
         type: String,
-        trim: true
-    },
-    board: {
-        type: String,
         trim: true,
-        required: true
-    }
+        maxlength: 100
+    }    
 }, {
     timestamps: true
 });

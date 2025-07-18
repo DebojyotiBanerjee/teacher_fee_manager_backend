@@ -36,8 +36,7 @@ const sendError = (res, status, message) => res.status(status).json({ success: f
 const sendSuccess = (res, data) => res.status(200).json({ success: true, data });
 
 // Helper to check if all required fields are filled in detailStudent
-function hasAllRequiredFields(detailStudent) {
-  if (!detailStudent) return false;
+function hasAllRequiredFields(detailStudent) {  
   // Top-level required fields
   if (!detailStudent.user || !detailStudent.gender) return false;
   // Education required fields
