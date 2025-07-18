@@ -56,14 +56,12 @@ exports.createDetailTeacher = async (req, res) => {
     const savedTeacher = await createProfile(
       DetailTeacher, 
       req.body, 
-      req.user._id, 
-      'user fullname email role phone'
+      req.user._id
     );
     
     sendSuccessResponse(res, {
-      ...savedTeacher.toObject(),
-      teacherUserId: savedTeacher.user,
-      createdBy: req.user._id
+      ...savedTeacher.toObject()
+      
     }, 'Teacher detail created successfully', 201);
     
   } catch (err) {
@@ -134,10 +132,10 @@ exports.getDetailTeacherById = async (req, res) => {
 exports.updateDetailTeacher = async (req, res) => {
   try {
     logControllerAction('Update Teacher Detail', req.user, { body: req.body });
-    
+
     // Sanitize input
     sanitizeRequest(req);
-    
+
     // Check role access
     const roleCheck = checkRoleAccess(req, 'teacher');
     if (!roleCheck.allowed) {
@@ -149,31 +147,68 @@ exports.updateDetailTeacher = async (req, res) => {
 
     // Check if profile exists
     const { exists } = await checkExistingProfile(DetailTeacher, req.user._id);
-    
+
+    // Prevent updating email and role fields
+    if ('email' in req.body) delete req.body.email;
+    if ('role' in req.body) delete req.body.role;
+
     if (!exists) {
-      // Create new profile if it doesn't exist
+      // If no profile exists, allow updating registered fields except email and role
+      // Update user fields except email and role
+      const allowedUserFields = ['fullname', 'phone'];
+      const userUpdate = {};
+      allowedUserFields.forEach(field => {
+        if (field in req.body) userUpdate[field] = req.body[field];
+      });
+
+      // Update user document
+      if (Object.keys(userUpdate).length > 0) {
+        await require('../models/user.models').findByIdAndUpdate(
+          req.user._id,
+          { $set: userUpdate },
+          { new: true }
+        );
+      }
+
+      // Create new teacher detail profile
       const savedTeacher = await createProfile(
-        DetailTeacher, 
-        req.body, 
-        req.user._id, 
-        'user fullname email role phone'
+        DetailTeacher,
+        req.body,
+        req.user._id,
+        'user'
       );
-      
+
       sendSuccessResponse(res, savedTeacher.toObject(), 'Teacher detail created successfully', 201);
     } else {
       // Update existing profile
+      // Prevent updating email and role in user subdocument
+      const allowedUserFields = ['fullname', 'phone'];
+      const userUpdate = {};
+      allowedUserFields.forEach(field => {
+        if (field in req.body) userUpdate[field] = req.body[field];
+      });
+
+      // Update user document
+      if (Object.keys(userUpdate).length > 0) {
+        await require('../models/user.models').findByIdAndUpdate(
+          req.user._id,
+          { $set: userUpdate },
+          { new: true }
+        );
+      }
+
       const updatedTeacher = await updateProfile(
-        DetailTeacher, 
-        req.user._id, 
-        req.body, 
+        DetailTeacher,
+        req.user._id,
+        req.body,
         {
           user: 'fullname email role phone'
         }
       );
-      
+
       sendSuccessResponse(res, updatedTeacher.toObject(), 'Teacher detail updated successfully');
     }
-    
+
   } catch (err) {
     handleError(err, res, 'Failed to update teacher detail');
   }

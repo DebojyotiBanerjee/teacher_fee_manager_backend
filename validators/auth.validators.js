@@ -41,11 +41,10 @@ exports.resendOTPValidator = [
 
 exports.loginValidator = [
   body('login')
-    .notEmpty().withMessage('Email, phone, or full name is required')
-    .isLength({ min: 3 }).withMessage('Login identifier too short'),
+    .notEmpty().withMessage('Login (email) is required')
+    .isEmail().withMessage('Valid email is required'),
   body('password')
     .notEmpty().withMessage('Password is required')
-    .isLength({ min: 1 }).withMessage('Password is required'),
 ];
 
 exports.forgotPasswordValidator = [

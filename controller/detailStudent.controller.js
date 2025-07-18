@@ -53,7 +53,7 @@ exports.createDetailStudent = async (req, res) => {
       DetailStudent, 
       req.body, 
       req.user._id, 
-      'user fullname email role phone'
+      'user' // Only populate user
     );
     
     sendSuccessResponse(res, {
@@ -83,22 +83,23 @@ exports.getDetailStudentById = async (req, res) => {
 
     // Try to get the student detail profile
     const detailStudent = await getProfile(DetailStudent, req.user._id, {
-      user: 'fullname email role phone',
-      enrolledBatches: 'batchName subject',
-      subjects: 'name'
+      user: 'fullname email role phone' // This will be handled as select fields for user
     });
 
     if (!detailStudent) {
-      // If no profile exists, return user info and empty student detail fields
+      // If no profile exists, return registration fields and empty detail fields
       return sendSuccessResponse(
         res,
         {
-          user: {
-            fullname: req.user.fullname || '',
-            email: req.user.email || '',
-            role: req.user.role || '',
-            phone: req.user.phone || ''
-          },
+          fullname: req.user.fullname || '',
+          email: req.user.email || '',
+          role: req.user.role || '',
+          phone: req.user.phone || '',
+          gender: '',
+          education: {},
+          guardian: {},
+          address: {},
+          dob: '',
           enrolledBatches: [],
           subjects: [],
           studentUserId: req.user._id,
@@ -107,7 +108,7 @@ exports.getDetailStudentById = async (req, res) => {
             role: req.user.role
           }
         },
-        'Student detail not found. Showing basic user info.',
+        'Student detail not found. Showing registration details only.',
         200
       );
     }
@@ -133,7 +134,11 @@ exports.updateDetailStudent = async (req, res) => {
     
     // Sanitize input
     sanitizeRequest(req);
-    
+
+    // Prevent updating email and role fields
+    if ('email' in req.body) delete req.body.email;
+    if ('role' in req.body) delete req.body.role;
+
     // Check role access
     const roleCheck = checkRoleAccess(req, 'student');
     if (!roleCheck.allowed) {
@@ -144,15 +149,29 @@ exports.updateDetailStudent = async (req, res) => {
     }
 
     // Check if profile exists
-    const { exists, profile } = await checkExistingProfile(DetailStudent, req.user._id);
-    
+    const { exists } = await checkExistingProfile(DetailStudent, req.user._id);
+
+    // Allow updating fullname and phone in user model
+    const allowedUserFields = ['fullname', 'phone'];
+    const userUpdate = {};
+    allowedUserFields.forEach(field => {
+      if (field in req.body) userUpdate[field] = req.body[field];
+    });
+    if (Object.keys(userUpdate).length > 0) {
+      await require('../models/user.models').findByIdAndUpdate(
+        req.user._id,
+        { $set: userUpdate },
+        { new: true }
+      );
+    }
+
     if (!exists) {
-      // Create new profile if it doesn't exist
+      // Create new student detail profile
       const savedStudent = await createProfile(
         DetailStudent, 
         req.body, 
         req.user._id, 
-        'user fullname email role phone'
+        'user' // Only populate user
       );
       
       sendSuccessResponse(res, savedStudent.toObject(), 'Student detail created successfully', 201);
@@ -163,9 +182,7 @@ exports.updateDetailStudent = async (req, res) => {
         req.user._id, 
         req.body, 
         {
-          user: 'fullname email role phone',
-          enrolledBatches: 'batchName subject',
-          subjects: 'name'
+          user: 'fullname email role phone' // This will be handled as select fields for user
         }
       );
       

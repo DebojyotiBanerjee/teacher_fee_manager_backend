@@ -2,6 +2,12 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const detailStudentSchema = new Schema({
+    user: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+        unique: true
+      } ,
     gender: {
         type: String,
         enum: ['male', 'female', 'other', 'prefer_not_to_say'],
@@ -73,18 +79,11 @@ const detailStudentSchema = new Schema({
     timestamps: true
 });
 
-// Indexes for better query performance
-detailStudentSchema.index({ 'enrolledBatches.batch': 1 });
-detailStudentSchema.index({ isProfileComplete: 1 });
+
 detailStudentSchema.index({ 'education.currentLevel': 1 });
 
-// Virtual for phone number from user model
-detailStudentSchema.virtual('phone').get(function () {
-    return this.user ? this.user.phone : undefined;
-});
 
-// Ensure virtual fields are included when converting to JSON
-detailStudentSchema.set('toJSON', { virtuals: true });
-detailStudentSchema.set('toObject', { virtuals: true });
+
+
 
 module.exports = mongoose.model('DetailStudent', detailStudentSchema);
