@@ -110,12 +110,17 @@ const CourseValidator = [
   body('title')
     .notEmpty().withMessage('Title is required')
     .isString().withMessage('Title must be a string'),
+  body('subtitle')
+    .optional()
+    .isString().withMessage('Subtitle must be a string')
+    .isLength({ max: 150 }).withMessage('Subtitle must be at most 150 characters'),
   body('description')
     .notEmpty().withMessage('Description is required')
     .isString().withMessage('Description must be a string')
-    .isLength({ max: 200 }).withMessage('Description must be at most 200 characters'),
-  body('category')
-    .isArray({ min: 1 }).withMessage('Category must be a non-empty array of strings'),
+    .isLength({ max: 500 }).withMessage('Description must be at most 500 characters'),
+  body('prerequisites')
+    .optional()
+    .isString().withMessage('Prerequisites must be a string'),
   body('fee')
     .notEmpty().withMessage('Fee is required')
     .isNumeric().withMessage('Fee must be a number')
@@ -124,7 +129,10 @@ const CourseValidator = [
     .notEmpty().withMessage('Duration is required')
     .isString().withMessage('Duration must be a string'),
   body('syllabus')
-    .isArray({ min: 1 }).withMessage('Syllabus must be a non-empty array of strings')
+    .isArray({ min: 1 }).withMessage('Syllabus must be a non-empty array of strings'),
+  body('syllabus.*')
+    .notEmpty().withMessage('Each syllabus item is required')
+    .isString().withMessage('Each syllabus item must be a string'),
 ];
 
 module.exports = { detailTeacherValidator, batchValidator, attendanceViewValidator, CourseValidator };

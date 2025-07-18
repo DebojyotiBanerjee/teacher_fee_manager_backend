@@ -4,12 +4,13 @@ const detailTeacherController = require('../controller/detailTeacher.controller'
 const { detailTeacherValidator, batchValidator, CourseValidator } = require('../validators/teacher.validator');
 const { Attendance } = require('../validators/attendance.validator');
 const validator = require('../middleware/validator.middleware');
-const { 
+const {
   authenticateTeacher
 } = require('../middleware/auth.middleware');
 const { sanitizeInput } = require('../middleware/sanitizer.middleware');
 const teacherEnrollController = require('../controller/teacherEnroll.controller');
 const courseController = require('../controller/course.controller');
+const { authenticateStudent } = require('../middleware/auth.middleware');
 
 // Test route to check if teacher routes are working
 router.get('/test', (req, res) => {
@@ -46,9 +47,15 @@ router.post('/attendance/mark', authenticateTeacher, Attendance, validator, teac
 
 // Course Management Routes
 router.post('/course', authenticateTeacher, CourseValidator, validator, courseController.createCourse);
-router.get('/course', authenticateTeacher, courseController.getCourses);
-router.get('/course/:id', authenticateTeacher, courseController.getCourseById);
 router.put('/course/:id', authenticateTeacher, CourseValidator, validator, courseController.updateCourse);
+router.get('/course/my', authenticateTeacher, courseController.getMyCourse);
 router.delete('/course/:id', authenticateTeacher, courseController.deleteCourse);
+
+// Student Course Access
+router.get('/courses', courseController.getAllCourses);
+router.get('/course/:id', courseController.getCourseById);
+router.post('/course/:id/enroll', authenticateStudent, courseController.enrollInCourse);
+router.delete('/course/:id/unenroll', authenticateStudent, courseController.unenrollFromCourse);
+
 
 module.exports = router;

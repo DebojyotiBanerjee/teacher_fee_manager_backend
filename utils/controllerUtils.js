@@ -184,6 +184,52 @@ const logControllerAction = (action, user, additionalData = {}) => {
   }
 };
 
+/**
+ * Check if a teacher profile is complete
+ */
+const isProfileComplete = (profile) => {
+  if (!profile) return false;
+  return (
+    Array.isArray(profile.qualifications) && profile.qualifications.length > 0 &&
+    profile.qualifications.every(q => q.degree && q.institution) &&
+    profile.experience && typeof profile.experience.years === 'number' &&
+    Array.isArray(profile.experience.previousInstitutions) &&
+    profile.address && profile.address.street && profile.address.city && profile.address.state && profile.address.pincode &&
+    Array.isArray(profile.subjectsTaught) && profile.subjectsTaught.length > 0
+  );
+};
+
+/**
+ * Check if a document belongs to a user (by teacher field)
+ */
+const checkOwnership = (doc, userId) => {
+  return doc && doc.teacher && doc.teacher.toString() === userId.toString();
+};
+
+/**
+ * Check for duplicate document in a collection
+ */
+const checkDuplicate = async (Model, filter) => {
+  return await Model.findOne(filter);
+};
+
+/**
+ * Check if a teacher can access course methods (profile complete, role, ownership)
+ */
+const canAccessCourse = async (req, DetailTeacher, Course) => {
+  if (!req.user || req.user.role !== 'teacher') return false;
+  const profile = await DetailTeacher.findOne({ user: req.user._id });
+  if (!isProfileComplete(profile)) return false;
+  return true;
+};
+
+/**
+ * Check if a student can view/enroll in courses
+ */
+const canStudentViewOrEnroll = (req) => {
+  return req.user && req.user.role === 'student';
+};
+
 module.exports = {
   handleError,
   sendSuccessResponse,
@@ -193,5 +239,10 @@ module.exports = {
   updateProfile,
   getProfile,
   sendDashboardResponse,
-  logControllerAction
+  logControllerAction,
+  isProfileComplete,
+  checkOwnership,
+  checkDuplicate,
+  canAccessCourse,
+  canStudentViewOrEnroll
 }; 
