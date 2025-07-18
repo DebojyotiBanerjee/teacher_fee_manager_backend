@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const detailTeacherController = require('../controller/detailTeacher.controller');
-const { detailTeacherValidator, batchValidator } = require('../validators/teacher.validator');
+const { detailTeacherValidator, batchValidator, CourseValidator } = require('../validators/teacher.validator');
 const { Attendance } = require('../validators/attendance.validator');
 const validator = require('../middleware/validator.middleware');
 const { 
@@ -9,6 +9,7 @@ const {
 } = require('../middleware/auth.middleware');
 const { sanitizeInput } = require('../middleware/sanitizer.middleware');
 const teacherEnrollController = require('../controller/teacherEnroll.controller');
+const courseController = require('../controller/course.controller');
 
 // Test route to check if teacher routes are working
 router.get('/test', (req, res) => {
@@ -29,6 +30,8 @@ router.get('/detail', authenticateTeacher, detailTeacherController.getDetailTeac
 router.put('/detail', authenticateTeacher, sanitizeInput, detailTeacherValidator, validator, detailTeacherController.updateDetailTeacher);
 router.delete('/detail', authenticateTeacher, detailTeacherController.deleteDetailTeacher);
 
+
+
 // Batch Management Routes
 router.get('/batch', authenticateTeacher, teacherEnrollController.viewMyBatches);
 router.post('/batch', authenticateTeacher, batchValidator, validator, teacherEnrollController.createBatch);
@@ -40,5 +43,12 @@ router.get('/view-batch/students', authenticateTeacher, teacherEnrollController.
 
 // Attendance Management Routes
 router.post('/attendance/mark', authenticateTeacher, Attendance, validator, teacherEnrollController.markAttendance);
+
+// Course Management Routes
+router.post('/course', authenticateTeacher, CourseValidator, validator, courseController.createCourse);
+router.get('/course', authenticateTeacher, courseController.getCourses);
+router.get('/course/:id', authenticateTeacher, courseController.getCourseById);
+router.put('/course/:id', authenticateTeacher, CourseValidator, validator, courseController.updateCourse);
+router.delete('/course/:id', authenticateTeacher, courseController.deleteCourse);
 
 module.exports = router;

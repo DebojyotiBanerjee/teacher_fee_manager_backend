@@ -105,4 +105,26 @@ const attendanceViewValidator = [
     .isLength({ max: 500 }).withMessage('Notes cannot exceed 500 characters'),
 ];
 
-module.exports = { detailTeacherValidator, batchValidator, attendanceViewValidator };
+// Course Validator
+const CourseValidator = [
+  body('title')
+    .notEmpty().withMessage('Title is required')
+    .isString().withMessage('Title must be a string'),
+  body('description')
+    .notEmpty().withMessage('Description is required')
+    .isString().withMessage('Description must be a string')
+    .isLength({ max: 200 }).withMessage('Description must be at most 200 characters'),
+  body('category')
+    .isArray({ min: 1 }).withMessage('Category must be a non-empty array of strings'),
+  body('fee')
+    .notEmpty().withMessage('Fee is required')
+    .isNumeric().withMessage('Fee must be a number')
+    .custom(fee => fee >= 0).withMessage('Fee must be non-negative'),
+  body('duration')
+    .notEmpty().withMessage('Duration is required')
+    .isString().withMessage('Duration must be a string'),
+  body('syllabus')
+    .isArray({ min: 1 }).withMessage('Syllabus must be a non-empty array of strings')
+];
+
+module.exports = { detailTeacherValidator, batchValidator, attendanceViewValidator, CourseValidator };

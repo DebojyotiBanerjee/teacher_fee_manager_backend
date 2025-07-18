@@ -33,7 +33,12 @@ const courseSchema = new Schema({
     type: [String],
     required: true,
     trim: true
-  }  
+  },
+  teacher: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  }
 }, {
   timestamps: true
 });
