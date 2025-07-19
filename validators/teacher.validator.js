@@ -42,37 +42,35 @@ const detailTeacherValidator = [
 ];
 
 const batchValidator = [
-
-
-  body('subject')
-    .notEmpty().withMessage('Subject is required')
-    .isString().withMessage('Subject must be a string')
-  ,
+  body('course')
+    .notEmpty().withMessage('Course is required')
+    .isMongoId().withMessage('Course must be a valid ID'),
   body('batchName')
     .notEmpty().withMessage('Batch name is required')
-    .isString().withMessage('Batch name must be a string'),
+    .isString().withMessage('Batch name must be a string')
+    .isLength({ max: 100 }).withMessage('Batch name cannot exceed 100 characters'),
   body('startDate')
     .notEmpty().withMessage('Start date is required')
     .isISO8601().withMessage('Start date must be a valid date'),
-
+  body('days')
+    .isArray({ min: 1 }).withMessage('Days must be a non-empty array')
+    .custom((value) => {
+      const validDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      return value.every(day => validDays.includes(day));
+    }).withMessage('Days must be one of: Mon, Tue, Wed, Thu, Fri, Sat, Sun'),
   body('time')
     .notEmpty().withMessage('Time is required')
     .isString().withMessage('Time must be a string'),
+  body('mode')
+    .notEmpty().withMessage('Mode is required')
+    .isIn(['online', 'offline', 'hybrid']).withMessage('Mode must be online, offline, or hybrid'),
   body('maxStrength')
     .notEmpty().withMessage('Max strength is required')
     .isInt({ min: 1, max: 100 }).withMessage('Max strength must be between 1 and 100'),
-  body('mode')
-    .notEmpty().withMessage('Mode is required')
-    .isIn(['online', 'offline', 'hybrid']).withMessage('Mode must be online, offline, or hybrid'),   
-    
-  body('daysOfWeek')
-    .isArray({ min: 1 }).withMessage('Days of week must be a non-empty array'),
-  body('daysOfWeek.*')
-    .notEmpty().withMessage('Each day of week is required')
-    .isString().withMessage('Day of week must be a string')
-    .isIn(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']).withMessage('Day of week must be one of: Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday'),  
   body('description')
-    .optional().isString().withMessage('Description must be a string'),  
+    .notEmpty().withMessage('Description is required')
+    .isString().withMessage('Description must be a string')
+    .isLength({ max: 150 }).withMessage('Description cannot exceed 150 characters'),
 ];
 
 const attendanceViewValidator = [

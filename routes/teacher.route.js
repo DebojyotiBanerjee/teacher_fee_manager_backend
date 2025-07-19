@@ -8,9 +8,9 @@ const {
   authenticateTeacher
 } = require('../middleware/auth.middleware');
 const { sanitizeInput } = require('../middleware/sanitizer.middleware');
-const teacherEnrollController = require('../controller/teacherEnroll.controller');
+const batchController = require('../controller/batch.controller');
 const courseController = require('../controller/course.controller');
-const { authenticateStudent } = require('../middleware/auth.middleware');
+const attendanceController = require('../controller/attendence.controller');
 
 // Test route to check if teacher routes are working
 router.get('/test', (req, res) => {
@@ -31,19 +31,18 @@ router.get('/detail', authenticateTeacher, detailTeacherController.getDetailTeac
 router.put('/detail', authenticateTeacher, sanitizeInput, detailTeacherValidator, validator, detailTeacherController.updateDetailTeacher);
 router.delete('/detail', authenticateTeacher, detailTeacherController.deleteDetailTeacher);
 
-
-
 // Batch Management Routes
-router.get('/batch', authenticateTeacher, teacherEnrollController.viewMyBatches);
-router.post('/batch', authenticateTeacher, batchValidator, validator, teacherEnrollController.createBatch);
-router.put('/batch/', authenticateTeacher, batchValidator, validator, teacherEnrollController.updateBatch);
-router.delete('/batch/', authenticateTeacher, teacherEnrollController.deleteBatch);
+router.get('/batch', authenticateTeacher, batchController.viewMyBatches);
+router.post('/batch', authenticateTeacher, batchValidator, validator, batchController.createBatch);
+router.get('/batch/:id', authenticateTeacher, batchController.getBatchById);
+router.put('/batch/:id', authenticateTeacher, batchValidator, validator, batchController.updateBatch);
+router.delete('/batch/:id', authenticateTeacher, batchController.deleteBatch);
 
-// View Batches and Students
-router.get('/view-batch/students', authenticateTeacher, teacherEnrollController.viewStudentsInBatch);
+// View Students in Batch
+router.get('/batch/:id/students', authenticateTeacher, batchController.viewStudentsInBatch);
 
-// Attendance Management Routes
-router.post('/attendance/mark', authenticateTeacher, Attendance, validator, teacherEnrollController.markAttendance);
+// Teacher Unenroll Student from Batch
+router.post('/batch/unenroll', authenticateTeacher, batchController.unenrollStudentFromBatch);
 
 // Course Management Routes
 router.post('/course', authenticateTeacher, CourseValidator, validator, courseController.createCourse);
@@ -52,7 +51,8 @@ router.get('/course/my', authenticateTeacher, courseController.getMyCourse);
 router.get('/course/:id', authenticateTeacher, courseController.getMyCourseById);
 router.delete('/course/:id', authenticateTeacher, courseController.deleteCourse);
 
-
-
+// Attendance Management Routes
+router.post('/attendance/mark', authenticateTeacher, Attendance, validator, attendanceController.markAttendance);
+router.get('/attendance', authenticateTeacher, attendanceController.viewAttendance);
 
 module.exports = router;

@@ -8,6 +8,8 @@ const {
 } = require('../middleware/auth.middleware');
 const { sanitizeInput } = require('../middleware/sanitizer.middleware');
 const courseController = require('../controller/course.controller');
+const attendanceController = require('../controller/attendence.controller');
+const batchController = require('../controller/batch.controller');
 
 // Student Dashboard
 router.get('/dashboard', authenticateStudent, detailStudentController.studentDashboard);
@@ -23,5 +25,13 @@ router.get('/courses',authenticateStudent, courseController.getAllCourses);
 router.get('/course/:id',authenticateStudent, courseController.getCourseById);
 router.post('/course/:id/enroll', authenticateStudent, courseController.enrollInCourse);
 router.delete('/course/:id/unenroll', authenticateStudent, courseController.unenrollFromCourse);
+
+// Student Attendance Routes
+router.get('/attendance', authenticateStudent, attendanceController.viewStudentAttendance);
+
+// Student Batch Access
+router.get('/batches/available', authenticateStudent, batchController.viewAvailableBatches);
+router.post('/batch/enroll', authenticateStudent, batchController.enrollInBatch);
+router.get('/batch/my', authenticateStudent, batchController.viewMyBatches);
 
 module.exports = router;

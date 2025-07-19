@@ -11,7 +11,7 @@ const handleError = (err, res, customMessage = null) => {
     return res.status(400).json({
       success: false,
       message: customMessage || 'Validation failed',
-      errors: Object.values(err.errors).map(e => e.message)
+      errors: err.errors ? Object.values(err.errors).map(e => e.message) : [customMessage || 'Validation failed']
     });
   }
   

@@ -154,17 +154,17 @@ exports.getAllCourses = async (req, res) => {
     );
   }
   // Pagination
-  const page = parseInt(req.query.page) > 0 ? parseInt(req.query.page) : 1;
-  const limit = parseInt(req.query.limit) > 0 ? parseInt(req.query.limit) : 10;
-  const skip = (page - 1) * limit;
+    const page = parseInt(req.query.page) > 0 ? parseInt(req.query.page) : 1;
+    const limit = parseInt(req.query.limit) > 0 ? parseInt(req.query.limit) : 10;
+    const skip = (page - 1) * limit;
 
   // Filtering
-  const filter = {};
-  if (req.query.feeMin) filter.fee = { ...filter.fee, $gte: Number(req.query.feeMin) };
-  if (req.query.feeMax) filter.fee = { ...filter.fee, $lte: Number(req.query.feeMax) };
-  if (req.query.duration) filter.duration = req.query.duration;
-  if (req.query.teacher) filter.teacher = req.query.teacher;
-  if (req.query.title) filter.title = { $regex: req.query.title, $options: 'i' };
+    const filter = {};
+    if (req.query.feeMin) filter.fee = { ...filter.fee, $gte: Number(req.query.feeMin) };
+    if (req.query.feeMax) filter.fee = { ...filter.fee, $lte: Number(req.query.feeMax) };
+    if (req.query.duration) filter.duration = req.query.duration;
+    if (req.query.teacher) filter.teacher = req.query.teacher;
+    if (req.query.title) filter.title = { $regex: req.query.title, $options: 'i' };
 
   // Sorting
   const sortBy = req.query.sortBy || 'createdAt';
