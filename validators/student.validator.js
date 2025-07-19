@@ -1,6 +1,6 @@
 const { body } = require('express-validator');
 
-exports.DetailStudent = [
+const DetailStudent = [
   body('gender')
     .notEmpty().withMessage('Gender is required')
     .isString().withMessage('Gender must be a string')
@@ -23,7 +23,6 @@ exports.DetailStudent = [
     .optional().isString().withMessage('Phone must be a string')
     .matches(/^[0-9]{10}$/).withMessage('Phone number must be 10 digits long')
     .isMobilePhone().withMessage('Valid phone number is required'),   
-  
   // Guardian validation
   body('guardian.name')
     .notEmpty().withMessage('Guardian name is required')
@@ -49,9 +48,9 @@ exports.DetailStudent = [
     .optional().isString().withMessage('Pincode must be a string'),
   body('address.country')
     .optional().isString().withMessage('Country must be a string'),  
-  
   // Date of birth validation (optional)
   body('dob')
     .optional().isISO8601().withMessage('Date of birth must be a valid date'),  
-  
 ];
+
+module.exports = { DetailStudent };

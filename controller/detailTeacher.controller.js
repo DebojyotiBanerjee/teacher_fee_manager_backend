@@ -17,6 +17,18 @@ const TEACHER_POPULATE_OPTIONS = [
   { path: 'user', select: 'fullname email role phone' }
 ];
 
+// Helper to check if all required fields are present for profile completeness
+function isTeacherProfileComplete(body) {
+  return (
+    Array.isArray(body.qualifications) && body.qualifications.length > 0 &&
+    body.qualifications.every(q => q.degree && q.institution) &&
+    body.experience && typeof body.experience.years === 'number' &&
+    Array.isArray(body.experience.previousInstitutions) &&
+    body.address && body.address.street && body.address.city && body.address.state && body.address.pincode &&
+    Array.isArray(body.subjectsTaught) && body.subjectsTaught.length > 0
+  );
+}
+
 exports.teacherDashboard = async (req, res) => {
   try {
     logControllerAction('Teacher Dashboard', req.user);
@@ -52,6 +64,8 @@ exports.createDetailTeacher = async (req, res) => {
       });
     }
 
+    // Automatically set isProfileComplete
+    req.body.isProfileComplete = isTeacherProfileComplete(req.body);
     // Create profile with populated user
     const savedTeacher = await createProfile(
       DetailTeacher, 
@@ -152,6 +166,9 @@ exports.updateDetailTeacher = async (req, res) => {
     if ('email' in req.body) delete req.body.email;
     if ('role' in req.body) delete req.body.role;
 
+    // Automatically set isProfileComplete
+    req.body.isProfileComplete = isTeacherProfileComplete(req.body);
+
     if (!exists) {
       // If no profile exists, allow updating registered fields except email and role
       // Update user fields except email and role
@@ -251,5 +268,14 @@ exports.deleteDetailTeacher = async (req, res) => {
       error: err.message 
     });
   }
+};
+
+module.exports = {
+  teacherDashboard: exports.teacherDashboard,
+  createDetailTeacher: exports.createDetailTeacher,
+  getDetailTeacherById: exports.getDetailTeacherById,
+  updateDetailTeacher: exports.updateDetailTeacher,
+  deleteDetailTeacher: exports.deleteDetailTeacher,
+  isTeacherProfileComplete
 };
 

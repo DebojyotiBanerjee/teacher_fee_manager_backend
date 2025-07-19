@@ -42,7 +42,10 @@ const detailTeacherSchema = new Schema({
   profilePic: {
     type: String,
     trim: true
-  }
+  },
+  isProfileComplete: { 
+    type: Boolean, default: false
+   }
 }, {
   timestamps: true
 });

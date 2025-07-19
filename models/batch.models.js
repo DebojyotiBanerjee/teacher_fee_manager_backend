@@ -2,55 +2,50 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const batchSchema = new Schema({
-
-    subject: {
-        type: [String],
-        required: true,
-        trim: true
-    },
-    batchName: {
-        type: String,
-        required: true,
-        trim: true
-    },
-    startDate: {
-        type: Date,
-        required: true
-    },
-    time: {
-        type: String, 
-        required: true
-    },
-    maxStrength: {
-        type: Number,
-        required: true,
-        min: 1
-    },
-    mode: {
-        type: String,
-        enum: ['online', 'offline', 'hybrid'],
-        required: true
-    },    
-    daysOfWeek: {
-        type: [String], 
-        required: true
-    },
-    description: {
-        type: String,
-        trim: true,
-        maxlength: 100
-    }    
+  batchName: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  course: {
+    type: Schema.Types.ObjectId,
+    ref: 'Course',
+    required: true
+  },
+  startDate: {
+    type: Date,
+    required: true
+  },
+  days: {
+    type: [String],
+    required: true,
+    enum: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  },
+  time: {
+    type: String,
+    required: true
+  },
+  mode: {
+    type: String,
+    required: true,
+    enum: ['online', 'offline', 'hybrid']
+  },
+  maxStrength: {
+    type: Number,
+    required: true,
+    min: 1
+  },
+  currentStrength: {
+    type: Number,
+    default: 0
+  },
+  description: {
+    type: String,
+    required: true,
+    maxlength: 150
+  }
 }, {
-    timestamps: true
+  timestamps: true
 });
-
-// Indexes for better query performance
-batchSchema.index({ subject: 1 });
-batchSchema.index({ 'schedule.startDate': 1 });
-batchSchema.index({ status: 1 });
-batchSchema.index({ averageRating: -1 });
-batchSchema.index({ mode: 1 });
-batchSchema.index({ requiresApproval: 1 });
-batchSchema.index({ teacherDetailId: 1 });
 
 module.exports = mongoose.model('Batch', batchSchema);
