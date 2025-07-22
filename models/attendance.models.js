@@ -7,6 +7,15 @@ const attendanceSchema = new Schema({
         ref: 'DetailTeacher',
         required: true
     },
+    batch: {
+        type: Schema.Types.ObjectId,
+        ref: 'Batch',
+        required: true
+    },
+    course: {
+        type: Schema.Types.ObjectId,
+        ref: 'Course'
+    },
     student: {
         type: Schema.Types.ObjectId,
         ref: 'DetailStudent',

@@ -11,7 +11,7 @@ const handleError = (err, res, customMessage = null) => {
     return res.status(400).json({
       success: false,
       message: customMessage || 'Validation failed',
-      errors: Object.values(err.errors).map(e => e.message)
+      errors: err.errors ? Object.values(err.errors).map(e => e.message) : [customMessage || 'Validation failed']
     });
   }
   
@@ -184,6 +184,67 @@ const logControllerAction = (action, user, additionalData = {}) => {
   }
 };
 
+/**
+ * Check if a teacher profile is complete
+ */
+const isProfileComplete = (profile) => {
+  if (!profile) return false;
+  return (
+    Array.isArray(profile.qualifications) && profile.qualifications.length > 0 &&
+    profile.qualifications.every(q => q.degree && q.institution) &&
+    profile.experience && typeof profile.experience.years === 'number' &&
+    Array.isArray(profile.experience.previousInstitutions) &&
+    profile.address && profile.address.street && profile.address.city && profile.address.state && profile.address.pincode &&
+    Array.isArray(profile.subjectsTaught) && profile.subjectsTaught.length > 0
+  );
+};
+
+/**
+ * Check if a document belongs to a user (by teacher field)
+ */
+const checkOwnership = (doc, userId) => {
+  return doc && doc.teacher && doc.teacher.toString() === userId.toString();
+};
+
+/**
+ * Check for duplicate document in a collection
+ */
+const checkDuplicate = async (Model, filter) => {
+  return await Model.findOne(filter);
+};
+
+/**
+ * Check if a teacher can access course methods (profile complete, role, ownership)
+ */
+const canAccessCourse = async (req, DetailTeacher, Course) => {
+  if (!req.user || req.user.role !== 'teacher') return false;
+  const profile = await DetailTeacher.findOne({ user: req.user._id });
+  if (!isProfileComplete(profile)) return false;
+  return true;
+};
+
+/**
+ * Check if a student can view/enroll in courses
+ */
+const canStudentViewOrEnroll = (req) => {
+  return req.user && req.user.role === 'student';
+};
+
+/**
+ * Checks if the current user is the owner (teacher) of the resource.
+ * @param {Object} resource - The resource (course or batch).
+ * @param {String} userId - The user ID from the JWT.
+ * @returns {Boolean}
+ */
+const isOwner = (resource, userId) => {
+  if (!resource || !userId) return false;
+  // For course: resource.teacher
+  // For batch: resource.teacher or resource.course.teacher
+  if (resource.teacher && resource.teacher.toString() === userId.toString()) return true;
+  if (resource.course && resource.course.teacher && resource.course.teacher.toString() === userId.toString()) return true;
+  return false;
+};
+
 module.exports = {
   handleError,
   sendSuccessResponse,
@@ -193,5 +254,11 @@ module.exports = {
   updateProfile,
   getProfile,
   sendDashboardResponse,
-  logControllerAction
+  logControllerAction,
+  isProfileComplete,
+  checkOwnership,
+  checkDuplicate,
+  canAccessCourse,
+  canStudentViewOrEnroll,
+  isOwner 
 }; 
