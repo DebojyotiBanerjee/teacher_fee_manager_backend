@@ -32,7 +32,7 @@ router.put('/detail', authenticateTeacher, sanitizeInput, detailTeacherValidator
 router.delete('/detail', authenticateTeacher, detailTeacherController.deleteDetailTeacher);
 
 // Batch Management Routes
-router.get('/batch', authenticateTeacher, batchController.viewMyBatches);
+router.get('/batch', authenticateTeacher, batchController.viewMyBatchesAsTeacher);
 router.post('/batch', authenticateTeacher, batchValidator, validator, batchController.createBatch);
 router.get('/batch/:id', authenticateTeacher, batchController.getBatchById);
 router.put('/batch/:id', authenticateTeacher, batchValidator, validator, batchController.updateBatch);

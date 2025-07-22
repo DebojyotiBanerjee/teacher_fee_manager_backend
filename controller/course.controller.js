@@ -9,13 +9,17 @@ const {
   canAccessCourse,
   checkOwnership,
   checkDuplicate,
-  canStudentViewOrEnroll
+  canStudentViewOrEnroll,
+  isOwner 
 } = require('../utils/controllerUtils');
 
 // Teacher: Create course
 exports.createCourse = async (req, res) => {
   logControllerAction('Create Course', req.user, { body: req.body });
   sanitizeRequest(req);
+  if (req.user.role !== 'teacher') {
+    return handleError({ name: 'Forbidden', message: 'Only teachers can create courses.' }, res, 'Only teachers can create courses.');
+  }
   if (!(await canAccessCourse(req, DetailTeacher, Course))) {
     return handleError({ name: 'Forbidden', message: 'You must be a teacher with a complete profile.' }, res, 'You must be a teacher with a complete profile.');
   }
@@ -35,12 +39,15 @@ exports.createCourse = async (req, res) => {
 exports.updateCourse = async (req, res) => {
   logControllerAction('Update Course', req.user, { body: req.body, params: req.params });
   sanitizeRequest(req);
+  if (req.user.role !== 'teacher') {
+    return handleError({ name: 'Forbidden', message: 'Only teachers can update courses.' }, res, 'Only teachers can update courses.');
+  }
   if (!(await canAccessCourse(req, DetailTeacher, Course))) {
     return handleError({ name: 'Forbidden', message: 'You must be a teacher with a complete profile.' }, res, 'You must be a teacher with a complete profile.');
   }
   const course = await Course.findById(req.params.id);
   if (!course) return handleError({ name: 'NotFound' }, res, 'Course not found');
-  if (!checkOwnership(course, req.user._id)) return handleError({ name: 'Forbidden', message: 'You do not own this course.' }, res, 'You do not own this course.');
+  if (!isOwner(course, req.user._id)) return handleError({ name: 'Forbidden', message: 'You do not own this course.' }, res, 'You do not own this course.');
   try {
     Object.assign(course, req.body);
     await course.save();
@@ -54,12 +61,15 @@ exports.updateCourse = async (req, res) => {
 exports.deleteCourse = async (req, res) => {
   logControllerAction('Delete Course', req.user, { params: req.params });
   sanitizeRequest(req);
+  if (req.user.role !== 'teacher') {
+    return handleError({ name: 'Forbidden', message: 'Only teachers can delete courses.' }, res, 'Only teachers can delete courses.');
+  }
   if (!(await canAccessCourse(req, DetailTeacher, Course))) {
     return handleError({ name: 'Forbidden', message: 'You must be a teacher with a complete profile.' }, res, 'You must be a teacher with a complete profile.');
   }
   const course = await Course.findById(req.params.id);
   if (!course) return handleError({ name: 'NotFound' }, res, 'Course not found');
-  if (!checkOwnership(course, req.user._id)) return handleError({ name: 'Forbidden', message: 'You do not own this course.' }, res, 'You do not own this course.');
+  if (!isOwner(course, req.user._id)) return handleError({ name: 'Forbidden', message: 'You do not own this course.' }, res, 'You do not own this course.');
   try {
     await require('../models/courseApplication.models').deleteMany({ course: course._id });
     await course.deleteOne();
@@ -72,6 +82,9 @@ exports.deleteCourse = async (req, res) => {
 // Teacher: Get their own course
 exports.getMyCourse = async (req, res) => {
   logControllerAction('Get My Course', req.user);
+  if (req.user.role !== 'teacher') {
+    return handleError({ name: 'Forbidden', message: 'Only teachers can view their courses.' }, res, 'Only teachers can view their courses.');
+  }
   if (!(await canAccessCourse(req, DetailTeacher, Course))) {
     return handleError(
       { name: 'Forbidden', message: 'You must be a teacher with a complete profile.' },
@@ -93,9 +106,14 @@ exports.getMyCourse = async (req, res) => {
   if (req.query.title) filter.title = { $regex: req.query.title, $options: 'i' };
 
   // Sorting
-  const sortBy = req.query.sortBy || 'createdAt';
-  const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
-  const sort = { [sortBy]: sortOrder };
+  // Supports: ?sortBy=duration&sortOrder=desc or ?sortBy=fee&sortOrder=desc for high-to-low
+  let sortBy = req.query.sortBy || 'createdAt';
+  let sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+  let sort = { [sortBy]: sortOrder };
+  if ((sortBy === 'duration' || sortBy === 'fee') && sortOrder === -1) {
+    // Explicitly sort high to low
+    sort = { [sortBy]: -1 };
+  }
 
   try {
     const [courses, total] = await Promise.all([
@@ -107,7 +125,6 @@ exports.getMyCourse = async (req, res) => {
         .sort(sort),
       Course.countDocuments(filter)
     ]);
-
     sendSuccessResponse(
       res,
       {
@@ -127,6 +144,9 @@ exports.getMyCourse = async (req, res) => {
 // Teacher: View their own course by ID
 exports.getMyCourseById = async (req, res) => {
   logControllerAction('Get My Course By ID', req.user, { params: req.params });
+  if (req.user.role !== 'teacher') {
+    return handleError({ name: 'Forbidden', message: 'Only teachers can view their course.' }, res, 'Only teachers can view their course.');
+  }
   if (!(await canAccessCourse(req, DetailTeacher, Course))) {
     return handleError(
       { name: 'Forbidden', message: 'You must be a teacher with a complete profile.' },
@@ -137,6 +157,7 @@ exports.getMyCourseById = async (req, res) => {
   try {
     const course = await Course.findOne({ _id: req.params.id, teacher: req.user._id }).populate('teacher', 'fullname email');
     if (!course) return handleError({ name: 'NotFound' }, res, 'Course not found or you do not own this course');
+    if (!isOwner(course, req.user._id)) return handleError({ name: 'Forbidden', message: 'You do not own this course.' }, res, 'You do not own this course.');
     sendSuccessResponse(res, course, 'Course retrieved successfully');
   } catch (err) {
     handleError(err, res, 'Failed to retrieve course');
@@ -154,22 +175,27 @@ exports.getAllCourses = async (req, res) => {
     );
   }
   // Pagination
-    const page = parseInt(req.query.page) > 0 ? parseInt(req.query.page) : 1;
-    const limit = parseInt(req.query.limit) > 0 ? parseInt(req.query.limit) : 10;
-    const skip = (page - 1) * limit;
+  const page = parseInt(req.query.page) > 0 ? parseInt(req.query.page) : 1;
+  const limit = parseInt(req.query.limit) > 0 ? parseInt(req.query.limit) : 10;
+  const skip = (page - 1) * limit;
 
   // Filtering
-    const filter = {};
-    if (req.query.feeMin) filter.fee = { ...filter.fee, $gte: Number(req.query.feeMin) };
-    if (req.query.feeMax) filter.fee = { ...filter.fee, $lte: Number(req.query.feeMax) };
-    if (req.query.duration) filter.duration = req.query.duration;
-    if (req.query.teacher) filter.teacher = req.query.teacher;
-    if (req.query.title) filter.title = { $regex: req.query.title, $options: 'i' };
+  const filter = {};
+  if (req.query.feeMin) filter.fee = { ...filter.fee, $gte: Number(req.query.feeMin) };
+  if (req.query.feeMax) filter.fee = { ...filter.fee, $lte: Number(req.query.feeMax) };
+  if (req.query.duration) filter.duration = req.query.duration;
+  if (req.query.teacher) filter.teacher = req.query.teacher;
+  if (req.query.title) filter.title = { $regex: req.query.title, $options: 'i' };
 
   // Sorting
-  const sortBy = req.query.sortBy || 'createdAt';
-  const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
-  const sort = { [sortBy]: sortOrder };
+  // Supports: ?sortBy=duration&sortOrder=desc or ?sortBy=fee&sortOrder=desc for high-to-low
+  let sortBy = req.query.sortBy || 'createdAt';
+  let sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+  let sort = { [sortBy]: sortOrder };
+  if ((sortBy === 'duration' || sortBy === 'fee') && sortOrder === -1) {
+    // Explicitly sort high to low
+    sort = { [sortBy]: -1 };
+  }
 
   try {
     const [courses, total] = await Promise.all([

@@ -230,6 +230,21 @@ const canStudentViewOrEnroll = (req) => {
   return req.user && req.user.role === 'student';
 };
 
+/**
+ * Checks if the current user is the owner (teacher) of the resource.
+ * @param {Object} resource - The resource (course or batch).
+ * @param {String} userId - The user ID from the JWT.
+ * @returns {Boolean}
+ */
+const isOwner = (resource, userId) => {
+  if (!resource || !userId) return false;
+  // For course: resource.teacher
+  // For batch: resource.teacher or resource.course.teacher
+  if (resource.teacher && resource.teacher.toString() === userId.toString()) return true;
+  if (resource.course && resource.course.teacher && resource.course.teacher.toString() === userId.toString()) return true;
+  return false;
+};
+
 module.exports = {
   handleError,
   sendSuccessResponse,
@@ -244,5 +259,6 @@ module.exports = {
   checkOwnership,
   checkDuplicate,
   canAccessCourse,
-  canStudentViewOrEnroll
+  canStudentViewOrEnroll,
+  isOwner 
 }; 

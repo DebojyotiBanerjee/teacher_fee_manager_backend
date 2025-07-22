@@ -5,7 +5,7 @@ const CourseApplication = require('../models/courseApplication.models');
 const Attendance = require('../models/attendance.models');
 const BatchEnrollment = require('../models/batchEnrollment.models');
 
-const { handleError, sendSuccessResponse, canAccessCourse, logControllerAction } = require('../utils/controllerUtils');
+const { handleError, sendSuccessResponse, canAccessCourse, logControllerAction, isOwner } = require('../utils/controllerUtils');
 const { sanitizeRequest } = require('../utils/sanitizer');
 
 // Teacher: Create batch
@@ -64,7 +64,7 @@ exports.createBatch = async (req, res) => {
 };
 
 // Teacher: Get all batches with students and attendance stats
-exports.viewMyBatches = async (req, res) => {
+exports.viewMyBatchesAsTeacher = async (req, res) => {
   try {
     logControllerAction('Get My Batches', req.user);
     
@@ -90,9 +90,14 @@ exports.viewMyBatches = async (req, res) => {
     if (req.query.endDate) filter.startDate = { ...filter.startDate, $lte: new Date(req.query.endDate) };
 
     // Sorting
-    const sortBy = req.query.sortBy || 'createdAt';
-    const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
-    const sort = { [sortBy]: sortOrder };
+    // Supports: ?sortBy=duration&sortOrder=desc or ?sortBy=fee&sortOrder=desc for high-to-low
+    let sortBy = req.query.sortBy || 'createdAt';
+    let sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+    let sort = { [sortBy]: sortOrder };
+    if ((sortBy === 'duration' || sortBy === 'fee') && sortOrder === -1) {
+      // Explicitly sort high to low
+      sort = { [sortBy]: -1 };
+    }
 
     // Get batches with course info
     const [batches, total] = await Promise.all([
@@ -151,7 +156,9 @@ exports.viewMyBatches = async (req, res) => {
 exports.getBatchById = async (req, res) => {
   try {
     logControllerAction('Get Batch By ID', req.user, { params: req.params });
-    
+    if (req.user.role !== 'teacher') {
+      return handleError({ name: 'Forbidden', message: 'Only teachers can view batch details.' }, res, 'Only teachers can view batch details.');
+    }
     if (!(await canAccessCourse(req, DetailTeacher, Course))) {
       return handleError(
         { name: 'Forbidden', message: 'You must be a teacher with a complete profile.' },
@@ -159,20 +166,12 @@ exports.getBatchById = async (req, res) => {
         'You must be a teacher with a complete profile.'
       );
     }
-
-    const batch = await Batch.findById(req.params.id).populate('course', 'title subtitle');
+    const batch = await Batch.findById(req.params.id).populate('course');
     if (!batch) {
       return handleError({ name: 'NotFound' }, res, 'Batch not found');
     }
-
-    // Verify teacher owns the course
-    const course = await Course.findOne({ _id: batch.course, teacher: req.user._id });
-    if (!course) {
-      return handleError(
-        { name: 'Forbidden', message: 'You do not own this batch.' },
-        res,
-        'You do not own this batch.'
-      );
+    if (!isOwner(batch.course, req.user._id)) {
+      return handleError({ name: 'Forbidden', message: 'You do not own this batch.' }, res, 'You do not own this batch.');
     }
 
     // Get enrolled students
@@ -232,7 +231,9 @@ exports.updateBatch = async (req, res) => {
   try {
     logControllerAction('Update Batch', req.user, { body: req.body, params: req.params });
     sanitizeRequest(req);
-
+    if (req.user.role !== 'teacher') {
+      return handleError({ name: 'Forbidden', message: 'Only teachers can update batches.' }, res, 'Only teachers can update batches.');
+    }
     if (!(await canAccessCourse(req, DetailTeacher, Course))) {
       return handleError(
         { name: 'Forbidden', message: 'You must be a teacher with a complete profile.' },
@@ -240,22 +241,13 @@ exports.updateBatch = async (req, res) => {
         'You must be a teacher with a complete profile.'
       );
     }
-
-    const batch = await Batch.findById(req.params.id);
+    const batch = await Batch.findById(req.params.id).populate('course');
     if (!batch) {
       return handleError({ name: 'NotFound' }, res, 'Batch not found');
     }
-
-    // Verify teacher owns the course
-    const course = await Course.findOne({ _id: batch.course, teacher: req.user._id });
-    if (!course) {
-      return handleError(
-        { name: 'Forbidden', message: 'You do not own this batch.' },
-        res,
-        'You do not own this batch.'
-      );
+    if (!isOwner(batch.course, req.user._id)) {
+      return handleError({ name: 'Forbidden', message: 'You do not own this batch.' }, res, 'You do not own this batch.');
     }
-
     // Check for duplicate batch name if batchName is being updated
     if (req.body.batchName && req.body.batchName !== batch.batchName) {
       const existingBatch = await Batch.findOne({ 
@@ -286,7 +278,9 @@ exports.deleteBatch = async (req, res) => {
   try {
     logControllerAction('Delete Batch', req.user, { params: req.params });
     sanitizeRequest(req);
-
+    if (req.user.role !== 'teacher') {
+      return handleError({ name: 'Forbidden', message: 'Only teachers can delete batches.' }, res, 'Only teachers can delete batches.');
+    }
     if (!(await canAccessCourse(req, DetailTeacher, Course))) {
       return handleError(
         { name: 'Forbidden', message: 'You must be a teacher with a complete profile.' },
@@ -294,22 +288,13 @@ exports.deleteBatch = async (req, res) => {
         'You must be a teacher with a complete profile.'
       );
     }
-
-    const batch = await Batch.findById(req.params.id);
+    const batch = await Batch.findById(req.params.id).populate('course');
     if (!batch) {
       return handleError({ name: 'NotFound' }, res, 'Batch not found');
     }
-
-    // Verify teacher owns the course
-    const course = await Course.findOne({ _id: batch.course, teacher: req.user._id });
-    if (!course) {
-      return handleError(
-        { name: 'Forbidden', message: 'You do not own this batch.' },
-        res,
-        'You do not own this batch.'
-      );
+    if (!isOwner(batch.course, req.user._id)) {
+      return handleError({ name: 'Forbidden', message: 'You do not own this batch.' }, res, 'You do not own this batch.');
     }
-
     // Check if there are any enrolled students
     const enrolledStudents = await CourseApplication.countDocuments({ course: batch.course });
     if (enrolledStudents > 0) {
@@ -331,7 +316,9 @@ exports.deleteBatch = async (req, res) => {
 exports.viewStudentsInBatch = async (req, res) => {
   try {
     logControllerAction('View Students In Batch', req.user, { params: req.params });
-    
+    if (req.user.role !== 'teacher') {
+      return handleError({ name: 'Forbidden', message: 'Only teachers can view students in batch.' }, res, 'Only teachers can view students in batch.');
+    }
     if (!(await canAccessCourse(req, DetailTeacher, Course))) {
       return handleError(
         { name: 'Forbidden', message: 'You must be a teacher with a complete profile.' },
@@ -339,20 +326,12 @@ exports.viewStudentsInBatch = async (req, res) => {
         'You must be a teacher with a complete profile.'
       );
     }
-
-    const batch = await Batch.findById(req.params.id);
+    const batch = await Batch.findById(req.params.id).populate('course');
     if (!batch) {
       return handleError({ name: 'NotFound' }, res, 'Batch not found');
     }
-
-    // Verify teacher owns the course
-    const course = await Course.findOne({ _id: batch.course, teacher: req.user._id });
-    if (!course) {
-      return handleError(
-        { name: 'Forbidden', message: 'You do not own this batch.' },
-        res,
-        'You do not own this batch.'
-      );
+    if (!isOwner(batch.course, req.user._id)) {
+      return handleError({ name: 'Forbidden', message: 'You do not own this batch.' }, res, 'You do not own this batch.');
     }
 
     // Pagination
@@ -423,9 +402,19 @@ exports.viewAvailableBatches = async (req, res) => {
     if (!course) {
       return handleError({ name: 'ValidationError' }, res, 'Course ID is required');
     }
+    // Sorting
+    // Supports: ?sortBy=duration&sortOrder=desc or ?sortBy=fee&sortOrder=desc for high-to-low
+    let sortBy = req.query.sortBy || 'createdAt';
+    let sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+    let sort = { [sortBy]: sortOrder };
+    if ((sortBy === 'duration' || sortBy === 'fee') && sortOrder === -1) {
+      // Explicitly sort high to low
+      sort = { [sortBy]: -1 };
+    }
     // Get all batches for the course
     const batches = await Batch.find({ course })
-      .select('batchName startDate days time mode maxStrength currentStrength description');
+      .select('batchName startDate days time mode maxStrength currentStrength description')
+      .sort(sort);
     sendSuccessResponse(res, batches, 'Available batches retrieved');
   } catch (err) {
     handleError(err, res, 'Failed to retrieve available batches');
@@ -476,7 +465,7 @@ exports.enrollInBatch = async (req, res) => {
 };
 
 // STUDENT: View enrolled batch(es)
-exports.viewMyBatches = async (req, res) => {
+exports.viewMyBatchesAsStudent = async (req, res) => {
   try {
     const studentId = req.user._id;
     const enrollments = await BatchEnrollment.find({ student: studentId })
