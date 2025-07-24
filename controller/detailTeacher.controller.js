@@ -113,6 +113,7 @@ exports.getDetailTeacherById = async (req, res) => {
             role: req.user.role || '',
             phone: req.user.phone || ''
           },
+          gender:'',
           qualifications: [],
           experience: {},
           address: {},
