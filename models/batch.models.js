@@ -43,6 +43,10 @@ const batchSchema = new Schema({
     type: String,
     required: true,
     maxlength: 150
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
