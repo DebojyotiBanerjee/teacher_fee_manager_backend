@@ -158,7 +158,7 @@ exports.getMyCourseById = async (req, res) => {
   try {
     const course = await Course.findOne({ _id: req.params.id, teacher: req.user._id, isDeleted: false }).populate('teacher', 'fullname email');
     if (!course) return handleError({ name: 'NotFound' }, res, 'Course not found or you do not own this course');
-    if (!isOwner(course, req.user._id)) return handleError({ name: 'Forbidden', message: 'You do not own this course.' }, res, 'You do not own this course.');
+    // if (!isOwner(course, req.user._id)) return handleError({ name: 'Forbidden', message: 'You do not own this course.' }, res, 'You do not own this course.');
     sendSuccessResponse(res, course, 'Course retrieved successfully');
   } catch (err) {
     handleError(err, res, 'Failed to retrieve course');
