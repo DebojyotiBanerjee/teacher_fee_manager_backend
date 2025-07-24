@@ -6,8 +6,7 @@ const {
   handleError,
   sendSuccessResponse,
   logControllerAction,
-  canAccessCourse,
-  checkOwnership,
+  canAccessCourse,  
   checkDuplicate,
   canStudentViewOrEnroll,
   isOwner 
@@ -67,12 +66,13 @@ exports.deleteCourse = async (req, res) => {
   if (!(await canAccessCourse(req, DetailTeacher, Course))) {
     return handleError({ name: 'Forbidden', message: 'You must be a teacher with a complete profile.' }, res, 'You must be a teacher with a complete profile.');
   }
-  const course = await Course.findById(req.params.id);
+  const course = await Course.findOne({ _id: req.params.id, isDeleted: false });
   if (!course) return handleError({ name: 'NotFound' }, res, 'Course not found');
   if (!isOwner(course, req.user._id)) return handleError({ name: 'Forbidden', message: 'You do not own this course.' }, res, 'You do not own this course.');
   try {
     await require('../models/courseApplication.models').deleteMany({ course: course._id });
-    await course.deleteOne();
+    course.isDeleted = true;
+    await course.save();
     sendSuccessResponse(res, null, 'Course and related enrollments deleted successfully');
   } catch (err) {
     handleError(err, res, 'Failed to delete course');
@@ -116,6 +116,7 @@ exports.getMyCourse = async (req, res) => {
   }
 
   try {
+    filter.isDeleted = false;
     const [courses, total] = await Promise.all([
       Course.find(filter)
         .populate('teacher', 'fullname email')
@@ -155,7 +156,7 @@ exports.getMyCourseById = async (req, res) => {
     );
   }
   try {
-    const course = await Course.findOne({ _id: req.params.id, teacher: req.user._id }).populate('teacher', 'fullname email');
+    const course = await Course.findOne({ _id: req.params.id, teacher: req.user._id, isDeleted: false }).populate('teacher', 'fullname email');
     if (!course) return handleError({ name: 'NotFound' }, res, 'Course not found or you do not own this course');
     if (!isOwner(course, req.user._id)) return handleError({ name: 'Forbidden', message: 'You do not own this course.' }, res, 'You do not own this course.');
     sendSuccessResponse(res, course, 'Course retrieved successfully');
@@ -198,6 +199,7 @@ exports.getAllCourses = async (req, res) => {
   }
 
   try {
+    filter.isDeleted = false;
     const [courses, total] = await Promise.all([
       Course.find(filter)
         .populate('teacher', 'fullname email')
@@ -228,7 +230,7 @@ exports.getCourseById = async (req, res) => {
   logControllerAction('Get Course By ID', req.user, { params: req.params });
   if (!canStudentViewOrEnroll(req)) return handleError({ name: 'Forbidden', message: 'Only students can view courses.' }, res, 'Only students can view courses.');
   try {
-    const course = await Course.findById(req.params.id).populate('teacher', 'fullname email');
+    const course = await Course.findOne({ _id: req.params.id, isDeleted: false }).populate('teacher', 'fullname email');
     if (!course) return handleError({ name: 'NotFound' }, res, 'Course not found');
     sendSuccessResponse(res, course, 'Course retrieved successfully');
   } catch (err) {

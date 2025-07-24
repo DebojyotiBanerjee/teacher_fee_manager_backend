@@ -98,7 +98,7 @@ exports.getDetailTeacherById = async (req, res) => {
     }
 
     // Try to find the teacher detail profile
-    let query = DetailTeacher.findOne({ user: req.user._id });
+    let query = DetailTeacher.findOne({ user: req.user._id, isDeleted: false });
     TEACHER_POPULATE_OPTIONS.forEach(opt => { query = query.populate(opt); });
     const detailTeacher = await query;
 
@@ -107,10 +107,12 @@ exports.getDetailTeacherById = async (req, res) => {
       return sendSuccessResponse(
         res,
         {
-          fullname: req.user.fullname || '',
-          email: req.user.email || '',
-          role: req.user.role || '',
-          phone: req.user.phone || '',
+          user: {
+            fullname: req.user.fullname || '',
+            email: req.user.email || '',
+            role: req.user.role || '',
+            phone: req.user.phone || ''
+          },
           qualifications: [],
           experience: {},
           address: {},
@@ -245,7 +247,11 @@ exports.deleteDetailTeacher = async (req, res) => {
       });
     }
 
-    const detailTeacher = await DetailTeacher.findOneAndDelete({ user: req.user._id });
+    const detailTeacher = await DetailTeacher.findOneAndUpdate(
+      { user: req.user._id, isDeleted: false },
+      { isDeleted: true },
+      { new: true }
+    );
     
     console.log('Deleted teacher detail:', detailTeacher ? 'Yes' : 'No');
     
