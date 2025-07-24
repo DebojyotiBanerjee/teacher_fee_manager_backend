@@ -84,17 +84,19 @@ exports.getDetailStudentById = async (req, res) => {
     // Try to get the student detail profile
     const detailStudent = await getProfile(DetailStudent, req.user._id, {
       user: 'fullname email role phone' // This will be handled as select fields for user
-    });
+    }, { isDeleted: false });
 
     if (!detailStudent) {
       // If no profile exists, return registration fields and empty detail fields
       return sendSuccessResponse(
         res,
         {
-          fullname: req.user.fullname || '',
-          email: req.user.email || '',
-          role: req.user.role || '',
-          phone: req.user.phone || '',
+          user: {
+            fullname: req.user.fullname || '',
+            email: req.user.email || '',
+            role: req.user.role || '',
+            phone: req.user.phone || ''
+          },
           gender: '',
           education: {},
           guardian: {},
@@ -210,7 +212,7 @@ exports.deleteDetailStudent = async (req, res) => {
     }
 
     // First check if student detail exists
-    const existingStudent = await DetailStudent.findOne({ user: req.user._id });
+    const existingStudent = await DetailStudent.findOne({ user: req.user._id, isDeleted: false });
     console.log('Existing student detail found:', existingStudent ? 'Yes' : 'No');
     
     if (!existingStudent) {
@@ -222,7 +224,11 @@ exports.deleteDetailStudent = async (req, res) => {
     }
 
     // Delete the student detail
-    const detailStudent = await DetailStudent.findOneAndDelete({ user: req.user._id });
+    const detailStudent = await DetailStudent.findOneAndUpdate(
+      { user: req.user._id, isDeleted: false },
+      { isDeleted: true },
+      { new: true }
+    );
     
     console.log('Deleted student detail:', detailStudent ? 'Yes' : 'No');
     console.log('Deleted student detail ID:', detailStudent?._id);

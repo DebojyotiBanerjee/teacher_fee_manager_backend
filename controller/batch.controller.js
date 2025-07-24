@@ -166,7 +166,7 @@ exports.getBatchById = async (req, res) => {
         'You must be a teacher with a complete profile.'
       );
     }
-    const batch = await Batch.findById(req.params.id).populate('course');
+    const batch = await Batch.findOne({ _id: req.params.id, isDeleted: false }).populate('course');
     if (!batch) {
       return handleError({ name: 'NotFound' }, res, 'Batch not found');
     }
@@ -305,7 +305,8 @@ exports.deleteBatch = async (req, res) => {
       );
     }
 
-    await batch.deleteOne();
+    batch.isDeleted = true;
+    await batch.save();
     sendSuccessResponse(res, null, 'Batch deleted successfully');
   } catch (err) {
     handleError(err, res, 'Failed to delete batch');
@@ -412,7 +413,7 @@ exports.viewAvailableBatches = async (req, res) => {
       sort = { [sortBy]: -1 };
     }
     // Get all batches for the course
-    const batches = await Batch.find({ course })
+    const batches = await Batch.find({ course, isDeleted: false })
       .select('batchName startDate days time mode maxStrength currentStrength description')
       .sort(sort);
     sendSuccessResponse(res, batches, 'Available batches retrieved');
@@ -429,7 +430,7 @@ exports.enrollInBatch = async (req, res) => {
     if (!batchId) {
       return handleError({ name: 'ValidationError' }, res, 'Batch ID is required');
     }
-    const batch = await Batch.findById(batchId).populate('course');
+    const batch = await Batch.findOne({ _id: batchId, isDeleted: false }).populate('course');
     if (!batch) {
       return handleError({ name: 'NotFound' }, res, 'Batch not found');
     }
