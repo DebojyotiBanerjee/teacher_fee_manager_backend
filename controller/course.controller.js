@@ -9,7 +9,8 @@ const {
   canAccessCourse,  
   checkDuplicate,
   canStudentViewOrEnroll,
-  isOwner 
+  isOwner,
+  softDelete
 } = require('../utils/controllerUtils');
 
 // Teacher: Create course
@@ -71,8 +72,7 @@ exports.deleteCourse = async (req, res) => {
   if (!isOwner(course, req.user._id)) return handleError({ name: 'Forbidden', message: 'You do not own this course.' }, res, 'You do not own this course.');
   try {
     await require('../models/courseApplication.models').deleteMany({ course: course._id });
-    course.isDeleted = true;
-    await course.save();
+    await softDelete(Course, { _id: req.params.id });
     sendSuccessResponse(res, null, 'Course and related enrollments deleted successfully');
   } catch (err) {
     handleError(err, res, 'Failed to delete course');

@@ -245,6 +245,21 @@ const isOwner = (resource, userId) => {
   return false;
 };
 
+/**
+ * Centralized, optimized soft delete utility
+ * @param {Mongoose.Model} Model - The Mongoose model
+ * @param {Object} filter - The filter to find the document
+ * @param {Object} [extraUpdateFields={}] - Any extra fields to update
+ * @returns {Promise<Object|null>} - The updated document or null if not found
+ */
+const softDelete = async (Model, filter, extraUpdateFields = {}) => {
+  return await Model.findOneAndUpdate(
+    filter,
+    { $set: { isDeleted: true, ...extraUpdateFields } },
+    { new: true }
+  );
+};
+
 module.exports = {
   handleError,
   sendSuccessResponse,
@@ -260,5 +275,6 @@ module.exports = {
   checkDuplicate,
   canAccessCourse,
   canStudentViewOrEnroll,
-  isOwner 
+  isOwner,
+  softDelete 
 }; 

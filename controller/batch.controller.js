@@ -5,7 +5,7 @@ const CourseApplication = require('../models/courseApplication.models');
 const Attendance = require('../models/attendance.models');
 const BatchEnrollment = require('../models/batchEnrollment.models');
 
-const { handleError, sendSuccessResponse, canAccessCourse, logControllerAction, isOwner } = require('../utils/controllerUtils');
+const { handleError, sendSuccessResponse, canAccessCourse, logControllerAction, isOwner, softDelete } = require('../utils/controllerUtils');
 const { sanitizeRequest } = require('../utils/sanitizer');
 
 // Teacher: Create batch
@@ -305,8 +305,10 @@ exports.deleteBatch = async (req, res) => {
       );
     }
 
-    batch.isDeleted = true;
-    await batch.save();
+    const deletedBatch = await softDelete(Batch, { _id: req.params.id });
+    if (!deletedBatch) {
+      return handleError({ name: 'NotFound' }, res, 'Batch not found');
+    }
     sendSuccessResponse(res, null, 'Batch deleted successfully');
   } catch (err) {
     handleError(err, res, 'Failed to delete batch');

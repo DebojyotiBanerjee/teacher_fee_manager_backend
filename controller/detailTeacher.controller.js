@@ -8,7 +8,8 @@ const {
   createProfile, 
   updateProfile,    
   sendDashboardResponse, 
-  logControllerAction 
+  logControllerAction,
+  softDelete
 } = require('../utils/controllerUtils');
 const { sanitizeRequest } = require('../utils/sanitizer');
 
@@ -248,21 +249,14 @@ exports.deleteDetailTeacher = async (req, res) => {
       });
     }
 
-    const detailTeacher = await DetailTeacher.findOneAndUpdate(
-      { user: req.user._id, isDeleted: false },
-      { isDeleted: true },
-      { new: true }
-    );
-    
+    const detailTeacher = await softDelete(DetailTeacher, { user: req.user._id, isDeleted: false });
     console.log('Deleted teacher detail:', detailTeacher ? 'Yes' : 'No');
-    
     if (!detailTeacher) {
       return res.status(404).json({ 
         success: false,
         message: 'Teacher detail not found' 
       });
     }
-    
     res.json({
       success: true,
       message: 'Teacher detail deleted successfully'

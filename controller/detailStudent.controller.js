@@ -9,7 +9,8 @@ const {
   updateProfile, 
   getProfile, 
   sendDashboardResponse, 
-  logControllerAction 
+  logControllerAction, 
+  softDelete 
 } = require('../utils/controllerUtils');
 const { sanitizeRequest } = require('../utils/sanitizer');
 
@@ -224,15 +225,9 @@ exports.deleteDetailStudent = async (req, res) => {
     }
 
     // Delete the student detail
-    const detailStudent = await DetailStudent.findOneAndUpdate(
-      { user: req.user._id, isDeleted: false },
-      { isDeleted: true },
-      { new: true }
-    );
-    
+    const detailStudent = await softDelete(DetailStudent, { user: req.user._id, isDeleted: false });
     console.log('Deleted student detail:', detailStudent ? 'Yes' : 'No');
     console.log('Deleted student detail ID:', detailStudent?._id);
-    
     res.json({
       success: true,
       message: 'Student detail deleted successfully',
