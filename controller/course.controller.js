@@ -77,14 +77,23 @@ exports.updateCourse = async (req, res) => {
       teacherId = teacherUser._id;
     }
     
+    // Prepare update data
     const updateData = {
       title, subtitle, description, prerequisites, fee, duration, syllabus
     };
     if (teacherId) updateData.teacher = teacherId;
     
-    Object.assign(course, updateData);
-    await course.save();
-    sendSuccessResponse(res, course, 'Course updated successfully');
+    // Use findOneAndUpdate for better performance - single query with population
+    const updatedCourse = await Course.findOneAndUpdate(
+      { _id: req.params.id },
+      updateData,
+      { 
+        new: true, // Return the updated document
+        runValidators: true // Run schema validators
+      }
+    ).populate('teacher', 'fullname email');
+    
+    sendSuccessResponse(res, updatedCourse, 'Course updated successfully');
   } catch (err) {
     handleError(err, res, 'Failed to update course');
   }
