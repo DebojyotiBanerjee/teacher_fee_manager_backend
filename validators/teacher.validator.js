@@ -43,6 +43,22 @@ const detailTeacherValidator = [
   body('user')
     .notEmpty().withMessage('User is required')
     .isMongoId().withMessage('User must be a valid Mongo ID'),
+  body('dob')
+    .notEmpty().withMessage('Date of birth is required')
+    .isISO8601().withMessage('Date of birth must be a valid date')
+    .custom((value) => {
+      const dob = new Date(value);
+      const today = new Date();
+      const age = today.getFullYear() - dob.getFullYear();
+      const m = today.getMonth() - dob.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+        return age - 1 >= 25;
+      }
+      if (age < 25) {
+        throw new Error('Teacher must be at least 25 years old');
+      }
+      return true;
+    }),
 ];
 
 const batchValidator = [

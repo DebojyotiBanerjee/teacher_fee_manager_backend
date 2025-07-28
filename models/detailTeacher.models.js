@@ -13,6 +13,10 @@ const detailTeacherSchema = new Schema({
     enum: ['male', 'female', 'other', 'prefer_not_to_say'],
     required: true
   },
+  dob: {
+    type: Date,
+    required: true
+  },
   qualifications: [{
     degree: {
       type: String,

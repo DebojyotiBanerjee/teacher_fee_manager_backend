@@ -71,7 +71,8 @@ const detailStudentSchema = new Schema({
         country: String
     },
     dob: {
-        type: Date
+        type: Date,
+        required: true
     },
     isDeleted: {
         type: Boolean,

@@ -49,6 +49,15 @@ exports.updateCourse = async (req, res) => {
   if (!course) return handleError({ name: 'NotFound' }, res, 'Course not found');
   if (!isOwner(course, req.user._id)) return handleError({ name: 'Forbidden', message: 'You do not own this course.' }, res, 'You do not own this course.');
   try {
+    // If teacher is provided as a name, resolve to _id
+    if (req.body.teacher && typeof req.body.teacher === 'string' && !req.body.teacher.match(/^[0-9a-fA-F]{24}$/)) {
+      const User = require('../models/user.models');
+      const teacherUser = await User.findOne({ fullname: req.body.teacher, role: 'teacher' });
+      if (!teacherUser) {
+        return handleError({ name: 'NotFound', message: 'Teacher with this name not found.' }, res, 'Teacher with this name not found.');
+      }
+      req.body.teacher = teacherUser._id;
+    }
     Object.assign(course, req.body);
     await course.save();
     sendSuccessResponse(res, course, 'Course updated successfully');
