@@ -32,7 +32,8 @@ const DetailStudent = [
     .isString().withMessage('Guardian relation must be a string'),
   body('guardian.phone')
     .notEmpty().withMessage('Guardian phone is required')
-    .isString().withMessage('Guardian phone must be a string'),
+    .isString().withMessage('Guardian phone must be a string')
+    .matches(/^\+91[0-9]{10}$/).withMessage('Phone number must be in the format +91XXXXXXXXXX'),
   body('guardian.email')
     .optional().isEmail().withMessage('Guardian email must be a valid email'),
   body('guardian.occupation')
