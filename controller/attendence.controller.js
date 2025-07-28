@@ -7,6 +7,9 @@ const { handleError, sendSuccessResponse, canAccessCourse } = require('../utils/
 // POST /teacher/attendance/mark
 exports.markAttendance = async (req, res) => {
   try {
+    // Destructure request body for clear testing
+    const { batch, date, attendance } = req.body; // attendance: [{ student, status, notes }]
+    
     // Check teacher profile completeness
     if (!(await canAccessCourse(req, DetailTeacher, Course))) {
       return handleError(
@@ -16,7 +19,6 @@ exports.markAttendance = async (req, res) => {
       );
     }
 
-    const { batch, date, attendance } = req.body; // attendance: [{ student, status, notes }]
     if (!batch || !date || !Array.isArray(attendance)) {
       return handleError({ name: 'ValidationError' }, res, 'Missing required fields');
     }

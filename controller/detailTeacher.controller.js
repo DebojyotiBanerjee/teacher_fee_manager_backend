@@ -47,6 +47,9 @@ exports.createDetailTeacher = async (req, res) => {
     // Sanitize input
     sanitizeRequest(req);
     
+    // Destructure request body for clear testing
+    const { gender, qualifications, experience, address, subjectsTaught, socialMedia, profilePic, dob } = req.body;
+    
     // Check role access
     const roleCheck = checkRoleAccess(req, 'teacher');
     if (!roleCheck.allowed) {
@@ -66,11 +69,13 @@ exports.createDetailTeacher = async (req, res) => {
     }
 
     // Automatically set isProfileComplete
-    req.body.isProfileComplete = isTeacherProfileComplete(req.body);
+    const teacherData = { gender, qualifications, experience, address, subjectsTaught, socialMedia, profilePic, dob };
+    teacherData.isProfileComplete = isTeacherProfileComplete(teacherData);
+    
     // Create profile with populated user
     const savedTeacher = await createProfile(
       DetailTeacher, 
-      req.body, 
+      teacherData, 
       req.user._id
     );
     
@@ -154,6 +159,9 @@ exports.updateDetailTeacher = async (req, res) => {
     // Sanitize input
     sanitizeRequest(req);
 
+    // Destructure request body for clear testing
+    const { fullname, phone, gender, qualifications, experience, address, subjectsTaught, socialMedia, profilePic, dob } = req.body;
+
     // Check role access
     const roleCheck = checkRoleAccess(req, 'teacher');
     if (!roleCheck.allowed) {
@@ -171,7 +179,8 @@ exports.updateDetailTeacher = async (req, res) => {
     if ('role' in req.body) delete req.body.role;
 
     // Automatically set isProfileComplete
-    req.body.isProfileComplete = isTeacherProfileComplete(req.body);
+    const teacherData = { gender, qualifications, experience, address, subjectsTaught, socialMedia, profilePic, dob };
+    teacherData.isProfileComplete = isTeacherProfileComplete(teacherData);
 
     if (!exists) {
       // If no profile exists, allow updating registered fields except email and role
@@ -194,7 +203,7 @@ exports.updateDetailTeacher = async (req, res) => {
       // Create new teacher detail profile
       const savedTeacher = await createProfile(
         DetailTeacher,
-        req.body,
+        teacherData,
         req.user._id,
         'user'
       );
@@ -221,7 +230,7 @@ exports.updateDetailTeacher = async (req, res) => {
       const updatedTeacher = await updateProfile(
         DetailTeacher,
         req.user._id,
-        req.body,
+        teacherData,
         {
           user: 'fullname email role phone'
         }

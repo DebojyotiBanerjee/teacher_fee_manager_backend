@@ -4,7 +4,7 @@ const detailTeacherValidator = [
   body('gender')
     .notEmpty().withMessage('Gender is required')
     .isString().withMessage('Gender must be a string')
-    .isIn(['male', 'female', 'other', 'prefer_not_to_say']).withMessage('Gender must be one of: male, female, other, prefer_not_to_say'), 
+    .isIn(['Male', 'Female', 'Other' ]).withMessage('Gender must be one of: Male, Female, Other'), 
   body('qualifications')
     .isArray({ min: 1 }).withMessage('Qualifications must be a non-empty array'),
   body('qualifications.*.degree')

@@ -17,6 +17,10 @@ const {
 exports.createCourse = async (req, res) => {
   logControllerAction('Create Course', req.user, { body: req.body });
   sanitizeRequest(req);
+  
+  // Destructure request body for clear testing
+  const { title, subtitle, description, prerequisites, fee, duration, syllabus } = req.body;
+  
   if (req.user.role !== 'teacher') {
     return handleError({ name: 'Forbidden', message: 'Only teachers can create courses.' }, res, 'Only teachers can create courses.');
   }
@@ -24,10 +28,19 @@ exports.createCourse = async (req, res) => {
     return handleError({ name: 'Forbidden', message: 'You must be a teacher with a complete profile.' }, res, 'You must be a teacher with a complete profile.');
   }
   // Prevent duplicate course with the same title for the same teacher
-  const existing = await checkDuplicate(Course, { teacher: req.user._id, title: req.body.title });
+  const existing = await checkDuplicate(Course, { teacher: req.user._id, title });
   if (existing) return handleError({ name: 'Duplicate', message: 'You already have a course with this title.' }, res, 'You already have a course with this title.');
   try {
-    const course = new Course({ ...req.body, teacher: req.user._id });
+    const course = new Course({ 
+      title, 
+      subtitle, 
+      description, 
+      prerequisites, 
+      fee, 
+      duration, 
+      syllabus, 
+      teacher: req.user._id 
+    });
     await course.save();
     sendSuccessResponse(res, course, 'Course created successfully', 201);
   } catch (err) {
@@ -39,6 +52,10 @@ exports.createCourse = async (req, res) => {
 exports.updateCourse = async (req, res) => {
   logControllerAction('Update Course', req.user, { body: req.body, params: req.params });
   sanitizeRequest(req);
+  
+  // Destructure request body for clear testing
+  const { title, subtitle, description, prerequisites, fee, duration, syllabus, teacher } = req.body;
+  
   if (req.user.role !== 'teacher') {
     return handleError({ name: 'Forbidden', message: 'Only teachers can update courses.' }, res, 'Only teachers can update courses.');
   }
@@ -50,15 +67,22 @@ exports.updateCourse = async (req, res) => {
   if (!isOwner(course, req.user._id)) return handleError({ name: 'Forbidden', message: 'You do not own this course.' }, res, 'You do not own this course.');
   try {
     // If teacher is provided as a name, resolve to _id
-    if (req.body.teacher && typeof req.body.teacher === 'string' && !req.body.teacher.match(/^[0-9a-fA-F]{24}$/)) {
+    let teacherId = teacher;
+    if (teacher && typeof teacher === 'string' && !teacher.match(/^[0-9a-fA-F]{24}$/)) {
       const User = require('../models/user.models');
-      const teacherUser = await User.findOne({ fullname: req.body.teacher, role: 'teacher' });
+      const teacherUser = await User.findOne({ fullname: teacher, role: 'teacher' });
       if (!teacherUser) {
         return handleError({ name: 'NotFound', message: 'Teacher with this name not found.' }, res, 'Teacher with this name not found.');
       }
-      req.body.teacher = teacherUser._id;
+      teacherId = teacherUser._id;
     }
-    Object.assign(course, req.body);
+    
+    const updateData = {
+      title, subtitle, description, prerequisites, fee, duration, syllabus
+    };
+    if (teacherId) updateData.teacher = teacherId;
+    
+    Object.assign(course, updateData);
     await course.save();
     sendSuccessResponse(res, course, 'Course updated successfully');
   } catch (err) {
@@ -251,13 +275,17 @@ exports.getCourseById = async (req, res) => {
 exports.enrollInCourse = async (req, res) => {
   logControllerAction('Enroll In Course', req.user, { params: req.params });
   sanitizeRequest(req);
+  
+  // Destructure request body for clear testing
+  const { courseId } = req.body;
+  
   if (!canStudentViewOrEnroll(req)) return handleError({ name: 'Forbidden', message: 'Only students can enroll.' }, res, 'Only students can enroll.');
-  const course = await Course.findById(req.params.id);
+  const course = await Course.findById(courseId || req.params.id);
   if (!course) return handleError({ name: 'NotFound' }, res, 'Course not found');
-  const existing = await checkDuplicate(CourseApplication, { course: req.params.id, student: req.user._id });
+  const existing = await checkDuplicate(CourseApplication, { course: courseId || req.params.id, student: req.user._id });
   if (existing) return handleError({ name: 'Duplicate', message: 'You have already enrolled in this course.' }, res, 'You have already enrolled in this course.');
   try {
-    const application = new CourseApplication({ course: req.params.id, student: req.user._id });
+    const application = new CourseApplication({ course: courseId || req.params.id, student: req.user._id });
     await application.save();
     sendSuccessResponse(res, application, 'Enrolled in course successfully', 201);
   } catch (err) {

@@ -31,6 +31,9 @@ exports.createDetailStudent = async (req, res) => {
     // Sanitize input
     sanitizeRequest(req);
     
+    // Destructure request body for clear testing
+    const { gender, education, guardian, address, dob, subjects } = req.body;
+    
     // Check role access
     const roleCheck = checkRoleAccess(req, 'student');
     if (!roleCheck.allowed) {
@@ -52,7 +55,7 @@ exports.createDetailStudent = async (req, res) => {
     // Create profile with populated user
     const savedStudent = await createProfile(
       DetailStudent, 
-      req.body, 
+      { gender, education, guardian, address, dob, subjects }, 
       req.user._id, 
       'user' // Only populate user
     );
@@ -138,6 +141,9 @@ exports.updateDetailStudent = async (req, res) => {
     // Sanitize input
     sanitizeRequest(req);
 
+    // Destructure request body for clear testing
+    const {  gender, education, guardian, address, dob, subjects } = req.body;
+
     // Prevent updating email and role fields
     if ('email' in req.body) delete req.body.email;
     if ('role' in req.body) delete req.body.role;
@@ -172,7 +178,7 @@ exports.updateDetailStudent = async (req, res) => {
       // Create new student detail profile
       const savedStudent = await createProfile(
         DetailStudent, 
-        req.body, 
+        { gender, education, guardian, address, dob, subjects }, 
         req.user._id, 
         'user' // Only populate user
       );
@@ -183,7 +189,7 @@ exports.updateDetailStudent = async (req, res) => {
       const updatedStudent = await updateProfile(
         DetailStudent, 
         req.user._id, 
-        req.body, 
+        { gender, education, guardian, address, dob, subjects }, 
         {
           user: 'fullname email role phone' // This will be handled as select fields for user
         }
