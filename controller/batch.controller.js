@@ -5,7 +5,7 @@ const CourseApplication = require('../models/courseApplication.models');
 const Attendance = require('../models/attendance.models');
 const BatchEnrollment = require('../models/batchEnrollment.models');
 
-const { handleError, sendSuccessResponse, canAccessCourse, logControllerAction, isOwner } = require('../utils/controllerUtils');
+const { handleError, sendSuccessResponse, canAccessCourse, logControllerAction, isOwner, softDelete } = require('../utils/controllerUtils');
 const { sanitizeRequest } = require('../utils/sanitizer');
 
 // Teacher: Create batch
@@ -13,6 +13,9 @@ exports.createBatch = async (req, res) => {
   try {
     logControllerAction('Create Batch', req.user, { body: req.body });
     sanitizeRequest(req);
+
+    // Destructure request body for clear testing
+    const { course, batchName, startDate, days, time, mode, maxStrength, description } = req.body;
 
     // Check teacher profile completeness and course access
     if (!(await canAccessCourse(req, DetailTeacher, Course))) {
@@ -22,8 +25,6 @@ exports.createBatch = async (req, res) => {
         'You must be a teacher with a complete profile.'
       );
     }
-
-    const { course, batchName, startDate, days, time, mode, maxStrength, description } = req.body;
 
     // Check if course exists and belongs to the teacher
     const courseExists = await Course.findOne({ _id: course, teacher: req.user._id });
@@ -231,6 +232,10 @@ exports.updateBatch = async (req, res) => {
   try {
     logControllerAction('Update Batch', req.user, { body: req.body, params: req.params });
     sanitizeRequest(req);
+    
+    // Destructure request body for clear testing
+    const { course, batchName, startDate, days, time, mode, maxStrength, description } = req.body;
+    
     if (req.user.role !== 'teacher') {
       return handleError({ name: 'Forbidden', message: 'Only teachers can update batches.' }, res, 'Only teachers can update batches.');
     }
@@ -249,10 +254,10 @@ exports.updateBatch = async (req, res) => {
       return handleError({ name: 'Forbidden', message: 'You do not own this batch.' }, res, 'You do not own this batch.');
     }
     // Check for duplicate batch name if batchName is being updated
-    if (req.body.batchName && req.body.batchName !== batch.batchName) {
+    if (batchName && batchName !== batch.batchName) {
       const existingBatch = await Batch.findOne({ 
         course: batch.course, 
-        batchName: req.body.batchName,
+        batchName,
         _id: { $ne: req.params.id }
       });
       if (existingBatch) {
@@ -264,7 +269,10 @@ exports.updateBatch = async (req, res) => {
       }
     }
 
-    Object.assign(batch, req.body);
+    const updateData = {
+      course, batchName, startDate, days, time, mode, maxStrength, description
+    };
+    Object.assign(batch, updateData);
     await batch.save();
 
     sendSuccessResponse(res, batch, 'Batch updated successfully');
@@ -305,8 +313,10 @@ exports.deleteBatch = async (req, res) => {
       );
     }
 
-    batch.isDeleted = true;
-    await batch.save();
+    const deletedBatch = await softDelete(Batch, { _id: req.params.id });
+    if (!deletedBatch) {
+      return handleError({ name: 'NotFound' }, res, 'Batch not found');
+    }
     sendSuccessResponse(res, null, 'Batch deleted successfully');
   } catch (err) {
     handleError(err, res, 'Failed to delete batch');
@@ -425,8 +435,10 @@ exports.viewAvailableBatches = async (req, res) => {
 // STUDENT: Enroll in a batch
 exports.enrollInBatch = async (req, res) => {
   try {
-    const { batch: batchId } = req.body;
+    // Destructure request body for clear testing
+    const { batchId } = req.body;
     const studentId = req.user._id;
+    
     if (!batchId) {
       return handleError({ name: 'ValidationError' }, res, 'Batch ID is required');
     }
@@ -483,7 +495,9 @@ exports.viewMyBatchesAsStudent = async (req, res) => {
 // TEACHER: Unenroll a student from a batch
 exports.unenrollStudentFromBatch = async (req, res) => {
   try {
+    // Destructure request body for clear testing
     const { batchId, studentId } = req.body;
+    
     if (!batchId || !studentId) {
       return handleError({ name: 'ValidationError' }, res, 'Batch ID and Student ID are required');
     }

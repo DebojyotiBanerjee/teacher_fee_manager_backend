@@ -8,7 +8,8 @@ const {
   createProfile, 
   updateProfile,    
   sendDashboardResponse, 
-  logControllerAction 
+  logControllerAction,
+  softDelete
 } = require('../utils/controllerUtils');
 const { sanitizeRequest } = require('../utils/sanitizer');
 
@@ -46,6 +47,9 @@ exports.createDetailTeacher = async (req, res) => {
     // Sanitize input
     sanitizeRequest(req);
     
+    // Destructure request body for clear testing
+    const { gender, qualifications, experience, address, subjectsTaught, socialMedia, profilePic, dob } = req.body;
+    
     // Check role access
     const roleCheck = checkRoleAccess(req, 'teacher');
     if (!roleCheck.allowed) {
@@ -65,11 +69,13 @@ exports.createDetailTeacher = async (req, res) => {
     }
 
     // Automatically set isProfileComplete
-    req.body.isProfileComplete = isTeacherProfileComplete(req.body);
+    const teacherData = { gender, qualifications, experience, address, subjectsTaught, socialMedia, profilePic, dob };
+    teacherData.isProfileComplete = isTeacherProfileComplete(teacherData);
+    
     // Create profile with populated user
     const savedTeacher = await createProfile(
       DetailTeacher, 
-      req.body, 
+      teacherData, 
       req.user._id
     );
     
@@ -153,6 +159,9 @@ exports.updateDetailTeacher = async (req, res) => {
     // Sanitize input
     sanitizeRequest(req);
 
+    // Destructure request body for clear testing
+    const { fullname, phone, gender, qualifications, experience, address, subjectsTaught, socialMedia, profilePic, dob } = req.body;
+
     // Check role access
     const roleCheck = checkRoleAccess(req, 'teacher');
     if (!roleCheck.allowed) {
@@ -170,7 +179,8 @@ exports.updateDetailTeacher = async (req, res) => {
     if ('role' in req.body) delete req.body.role;
 
     // Automatically set isProfileComplete
-    req.body.isProfileComplete = isTeacherProfileComplete(req.body);
+    const teacherData = { gender, qualifications, experience, address, subjectsTaught, socialMedia, profilePic, dob };
+    teacherData.isProfileComplete = isTeacherProfileComplete(teacherData);
 
     if (!exists) {
       // If no profile exists, allow updating registered fields except email and role
@@ -193,7 +203,7 @@ exports.updateDetailTeacher = async (req, res) => {
       // Create new teacher detail profile
       const savedTeacher = await createProfile(
         DetailTeacher,
-        req.body,
+        teacherData,
         req.user._id,
         'user'
       );
@@ -220,7 +230,7 @@ exports.updateDetailTeacher = async (req, res) => {
       const updatedTeacher = await updateProfile(
         DetailTeacher,
         req.user._id,
-        req.body,
+        teacherData,
         {
           user: 'fullname email role phone'
         }
@@ -248,21 +258,14 @@ exports.deleteDetailTeacher = async (req, res) => {
       });
     }
 
-    const detailTeacher = await DetailTeacher.findOneAndUpdate(
-      { user: req.user._id, isDeleted: false },
-      { isDeleted: true },
-      { new: true }
-    );
-    
+    const detailTeacher = await softDelete(DetailTeacher, { user: req.user._id, isDeleted: false });
     console.log('Deleted teacher detail:', detailTeacher ? 'Yes' : 'No');
-    
     if (!detailTeacher) {
       return res.status(404).json({ 
         success: false,
         message: 'Teacher detail not found' 
       });
     }
-    
     res.json({
       success: true,
       message: 'Teacher detail deleted successfully'

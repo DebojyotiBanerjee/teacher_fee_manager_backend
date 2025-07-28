@@ -107,8 +107,10 @@ exports.getAvailableBatches = async (req, res) => {
  */
 exports.applyToBatch = async (req, res) => {
   try {
-    const studentId = req.user.id;
+    // Destructure request body for clear testing
     const { batchId } = req.body;
+    const studentId = req.user.id;
+    
     if (!isValidObjectId(batchId)) {
       return sendError(res, 400, 'Invalid batch ID');
     }
@@ -183,6 +185,7 @@ exports.applyToBatch = async (req, res) => {
 // 3. Approval: Teacher may approve/reject the student's enrollment (optional)
 exports.approveEnrollment = async (req, res) => {
   try {
+    // Destructure request body for clear testing
     const { studentId, batchId, action } = req.body; // action: 'approve' or 'reject'
     const teacherId = req.user.id;
 
@@ -342,6 +345,7 @@ exports.getEnrollmentDetails = async (req, res) => {
 // 6. Update attendance (for teachers or automated system)
 exports.updateAttendance = async (req, res) => {
   try {
+    // Destructure request body for clear testing
     const { studentId, batchId, isPresent } = req.body;
     const teacherId = req.user.id;
 
@@ -387,6 +391,7 @@ exports.updateAttendance = async (req, res) => {
 // 7. Mark fee as paid
 exports.markFeePaid = async (req, res) => {
   try {
+    // Destructure request body for clear testing
     const { studentId, batchId } = req.body;
     const teacherId = req.user.id;
 
