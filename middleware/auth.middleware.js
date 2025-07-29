@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/user.models');
+const { tokenUtils } = require('../utils/controllerUtils');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -28,6 +29,14 @@ const authenticate = (requiredRole = null) => async (req, res, next) => {
       return res.status(401).json({ 
         success: false,
         message: 'Access token is required' 
+      });
+    }
+
+    // Check if token is blacklisted
+    if (tokenUtils.isTokenBlacklisted(token)) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Token has been revoked' 
       });
     }
 

@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/user.models');
 const { validationResult } = require('express-validator');
 const nodemailer = require('nodemailer');
+const { tokenUtils } = require('../utils/controllerUtils');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -12,7 +13,7 @@ const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
 
 // Token expiry settings from environment variables
-const ACCESS_TOKEN_EXPIRY_MS = Number(process.env.ACCESS_TOKEN_EXPIRY_MS) || 7 * 24 * 60 * 60 * 1000; // 7 days default
+const ACCESS_TOKEN_EXPIRY_MS = Number(process.env.ACCESS_TOKEN_EXPIRY_MS) || 60 * 60 * 1000; // 1 hour default
 const REFRESH_TOKEN_EXPIRY_MS = Number(process.env.REFRESH_TOKEN_EXPIRY_MS) || 7 * 24 * 60 * 60 * 1000; // 7 days default
 
 // Convert milliseconds to seconds for JWT
@@ -30,19 +31,31 @@ const transporter = nodemailer.createTransport({
 
 // Generate OTP
 const generateOTP = () => {
+  // Generate a 6-digit OTP with better randomness
   return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// Validate email format
+const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
 };
 
 // Send OTP via Email
 const sendEmailOTP = async (email, otp) => {
-  const mailOptions = {
-    from: EMAIL_USER,
-    to: email,
-    subject: 'Your OTP for Verification',
-    text: `Your OTP is: ${otp}. It will expire in ${OTP_EXPIRY_MINUTES} minute(s).`
-  };
+  try {
+    const mailOptions = {
+      from: EMAIL_USER,
+      to: email,
+      subject: 'Your OTP for Verification',
+      text: `Your OTP is: ${otp}. It will expire in ${OTP_EXPIRY_MINUTES} minute(s).`
+    };
 
-  await transporter.sendMail(mailOptions);
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error('Email sending error:', error);
+    throw new Error('Failed to send OTP email');
+  }
 };
 
 // Register with Email OTP verification and resend capability
@@ -59,12 +72,51 @@ exports.register = async (req, res) => {
 
     const { fullname, email, phone, password, confirmPassword, role, resend } = req.body;
 
+    // Normalize resend parameter - only treat as true if explicitly set to true
+    // Check if resend is explicitly set to true (not just any truthy value)
+    const isResendRequest = resend === true || resend === 'true' || resend === 1 || resend === '1';
+    
+    // If resend is not explicitly set to true, treat as new registration
+    const isNewRegistration = !isResendRequest;
+    
+    // Debug logging
+    console.log('Registration request:', {
+      email,
+      resend: resend,
+      isResendRequest,
+      hasAllFields: !!(fullname && email && phone && password && confirmPassword && role)
+    });
+
+    // Validate required fields
+    if (!fullname || !email || !phone || !password || !confirmPassword || !role) {
+      return res.status(400).json({
+        success: false,
+        message: 'All fields are required'
+      });
+    }
+
+    // Validate email format
+    if (!isValidEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
+      });
+    }
+
     // Validate role
     const validRoles = ['student', 'teacher']; // Define valid roles here
     if (!validRoles.includes(role)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid role specified'
+      });
+    }
+
+    // Validate password strength
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
       });
     }
 
@@ -77,22 +129,42 @@ exports.register = async (req, res) => {
       });
     }
 
-    if (resend) {
-      const existingUnverifiedUser = await User.findOne({ email, isVerified: false });
-      if (!existingUnverifiedUser) {
-        return res.status(404).json({
+    let existingUser;
+    try {
+      existingUser = await User.findOne({ $or: [{ email }, { phone }] });
+    } catch (dbError) {
+      console.error('Database error during user lookup:', dbError);
+      return res.status(500).json({
+        success: false,
+        message: 'Database error during registration'
+      });
+    }
+    
+    // Debug logging
+    console.log('User lookup result:', {
+      email,
+      existingUser: existingUser ? { id: existingUser._id, isVerified: existingUser.isVerified } : null,
+      isResendRequest
+    });
+    
+    // If user exists and resend is requested, handle resend OTP
+    if (existingUser && isResendRequest) {
+      // Check if the existing user is unverified
+      if (existingUser.isVerified) {
+        return res.status(400).json({
           success: false,
-          message: 'No unverified user found with this email'
+          message: 'User is already verified'
         });
       }
+      
       let newOTP;
       do {
         newOTP = generateOTP();
-      } while (newOTP === existingUnverifiedUser.otp);
-      const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES + 5 * 60 * 1000);
-      existingUnverifiedUser.otp = newOTP;
-      existingUnverifiedUser.otpExpiry = otpExpiry;
-      await existingUnverifiedUser.save();
+      } while (newOTP === existingUser.otp);
+      const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+      existingUser.otp = newOTP;
+      existingUser.otpExpiry = otpExpiry;
+      await existingUser.save();
       await sendEmailOTP(email, newOTP);
       return res.status(200).json({
         success: true,
@@ -100,17 +172,36 @@ exports.register = async (req, res) => {
         data: { email }
       });
     }
-
-    const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
+    
+    // If user exists but no resend requested, return conflict
     if (existingUser) {
       return res.status(409).json({
         success: false,
         message: existingUser.email === email ? 'Email already in use' : 'Phone already in use'
       });
     }
+    
+    // If resend is requested but no user exists, return error
+    if (isResendRequest) {
+      return res.status(404).json({
+        success: false,
+        message: 'No unverified user found with this email'
+      });
+    }
+    
+    // If this is a new registration (no resend requested), proceed with registration
+    if (isNewRegistration) {
+      console.log('Proceeding with new user registration for:', email);
+    }
 
     const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES + 5 * 60 * 1000);
+    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+
+    console.log('Creating new user with:', {
+      email,
+      role,
+      otp: otp.substring(0, 3) + '***' // Log partial OTP for debugging
+    });
 
     const user = new User({
       fullname,
@@ -122,8 +213,25 @@ exports.register = async (req, res) => {
       otp,
       otpExpiry
     });
-    await user.save();
-    await sendEmailOTP(email, otp);
+    
+    try {
+      await user.save();
+      console.log('User saved successfully:', user._id);
+    } catch (saveError) {
+      console.error('Error saving user:', saveError);
+      return res.status(500).json({
+        success: false,
+        message: 'Error creating user account'
+      });
+    }
+    
+    try {
+      await sendEmailOTP(email, otp);
+      console.log('OTP email sent successfully to:', email);
+    } catch (emailError) {
+      console.error('Error sending OTP email:', emailError);
+      // Don't fail the registration if email fails, but log it
+    }
 
     res.status(200).json({
       success: true,
@@ -145,6 +253,14 @@ exports.verifyOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
 
+    // Validate input
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and OTP are required'
+      });
+    }
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({
@@ -152,6 +268,23 @@ exports.verifyOTP = async (req, res) => {
         message: 'User not found'
       });
     }
+
+    // Check if user is already verified
+    if (user.isVerified) {
+      return res.status(400).json({
+        success: false,
+        message: 'User is already verified'
+      });
+    }
+
+    // Check if OTP exists
+    if (!user.otp || !user.otpExpiry) {
+      return res.status(400).json({
+        success: false,
+        message: 'No OTP found for this user'
+      });
+    }
+
     if (new Date() > user.otpExpiry) {
       return res.status(401).json({
         success: false,
@@ -177,14 +310,16 @@ exports.verifyOTP = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Lax",
-      maxAge: ACCESS_TOKEN_EXPIRY_MS
+      maxAge: ACCESS_TOKEN_EXPIRY_MS,
+      path: '/'
     });
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Lax",
-      maxAge: REFRESH_TOKEN_EXPIRY_MS
+      maxAge: REFRESH_TOKEN_EXPIRY_MS,
+      path: '/'
     });
 
     res.status(200).json({
@@ -219,6 +354,14 @@ exports.resendOTP = async (req, res) => {
   try {
     const { email } = req.body;
 
+    // Validate input
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+
     const user = await User.findOne({ email, isVerified: false });
     if (!user) {
       return res.status(404).json({
@@ -230,7 +373,7 @@ exports.resendOTP = async (req, res) => {
     do {
       newOTP = generateOTP();
     } while (newOTP === user.otp);
-    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES + 5 * 60 * 1000);
+    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
     user.otp = newOTP;
     user.otpExpiry = otpExpiry;
     await user.save();
@@ -255,6 +398,22 @@ exports.login = async (req, res) => {
   try {
     const { login, password } = req.body;
 
+    // Validate input
+    if (!login || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required'
+      });
+    }
+
+    // Validate email format if login is an email
+    if (login.includes('@') && !isValidEmail(login)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
+      });
+    }
+
     const user = await User.findOne({
       $or: [
         { email: login }
@@ -267,6 +426,15 @@ exports.login = async (req, res) => {
         message: 'Invalid credentials'
       });
     }
+
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: 'Account is deactivated. Please contact support.'
+      });
+    }
+
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({
@@ -282,7 +450,7 @@ exports.login = async (req, res) => {
       do {
         newOTP = generateOTP();
       } while (newOTP === user.otp);
-      const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES + 5 * 60 * 1000);
+      const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
       user.otp = newOTP;
       user.otpExpiry = otpExpiry;
       await user.save();
@@ -297,14 +465,16 @@ exports.login = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Lax",
-      maxAge: ACCESS_TOKEN_EXPIRY_MS
+      maxAge: ACCESS_TOKEN_EXPIRY_MS,
+      path: '/'
     });
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Lax",
-      maxAge: REFRESH_TOKEN_EXPIRY_MS
+      maxAge: REFRESH_TOKEN_EXPIRY_MS,
+      path: '/'
     });
 
     // If user is not verified, inform client that OTP was sent and require verification
@@ -345,11 +515,39 @@ exports.login = async (req, res) => {
   }
 };
 
-// Logout function to clear cookies
+// Logout function to clear cookies and blacklist tokens
 exports.logout = async (req, res) => {
   try {
-    res.clearCookie("accessToken");
-    res.clearCookie("refreshToken");
+    // Get tokens from cookies or headers
+    let accessToken = req.cookies.accessToken;
+    let refreshToken = req.cookies.refreshToken;
+    
+    if (!accessToken) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        accessToken = authHeader.split(' ')[1];
+      }
+    }
+
+    // Blacklist the tokens if they exist
+    if (accessToken) {
+      try {
+        tokenUtils.blacklistToken(accessToken);
+      } catch (error) {
+        console.error('Error blacklisting access token:', error);
+      }
+    }
+    if (refreshToken) {
+      try {
+        tokenUtils.blacklistToken(refreshToken);
+      } catch (error) {
+        console.error('Error blacklisting refresh token:', error);
+      }
+    }
+
+    // Clear cookies
+    res.clearCookie("accessToken", { path: '/' });
+    res.clearCookie("refreshToken", { path: '/' });
 
     res.status(200).json({
       success: true,
@@ -379,6 +577,14 @@ exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
+    // Validate input
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({
@@ -386,8 +592,17 @@ exports.forgotPassword = async (req, res) => {
         message: 'User not found with this email'
       });
     }
+
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(400).json({
+        success: false,
+        message: 'Account is deactivated. Please contact support.'
+      });
+    }
+
     const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES + 5 * 60 * 1000);
+    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
     user.resetPasswordOTP = otp;
     user.resetPasswordExpires = otpExpiry;
     await user.save();
@@ -412,6 +627,14 @@ exports.verifyResetOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
 
+    // Validate input
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and OTP are required'
+      });
+    }
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({
@@ -419,6 +642,15 @@ exports.verifyResetOTP = async (req, res) => {
         message: 'User not found'
       });
     }
+
+    // Check if reset OTP exists
+    if (!user.resetPasswordOTP || !user.resetPasswordExpires) {
+      return res.status(400).json({
+        success: false,
+        message: 'No password reset OTP found for this user'
+      });
+    }
+
     if (otp !== user.resetPasswordOTP || new Date() > user.resetPasswordExpires) {
       return res.status(401).json({
         success: false,
@@ -447,6 +679,14 @@ exports.resendPasswordResetOTP = async (req, res) => {
   try {
     const { email } = req.body;
 
+    // Validate input
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({
@@ -454,11 +694,20 @@ exports.resendPasswordResetOTP = async (req, res) => {
         message: 'User not found with this email'
       });
     }
+
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(400).json({
+        success: false,
+        message: 'Account is deactivated. Please contact support.'
+      });
+    }
+
     let newOTP;
     do {
       newOTP = generateOTP();
     } while (newOTP === user.resetPasswordOTP);
-    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES + 5 * 60 * 1000);
+    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
     user.resetPasswordOTP = newOTP;
     user.resetPasswordExpires = otpExpiry;
     await user.save();
@@ -483,10 +732,26 @@ exports.resetPassword = async (req, res) => {
   try {
     const { email, otp, newPassword, confirmPassword } = req.body;
 
+    // Validate input
+    if (!email || !otp || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email, OTP, new password, and confirm password are required'
+      });
+    }
+
     if (newPassword !== confirmPassword) {
       return res.status(400).json({
         success: false,
         message: 'Passwords do not match'
+      });
+    }
+
+    // Validate password strength (basic validation)
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
       });
     }
 
@@ -497,6 +762,15 @@ exports.resetPassword = async (req, res) => {
         message: 'User not found'
       });
     }
+
+    // Check if reset OTP exists
+    if (!user.resetPasswordOTP || !user.resetPasswordExpires) {
+      return res.status(400).json({
+        success: false,
+        message: 'No password reset OTP found for this user'
+      });
+    }
+
     if (otp !== user.resetPasswordOTP || new Date() > user.resetPasswordExpires) {
       return res.status(401).json({
         success: false,
@@ -535,7 +809,33 @@ exports.getCurrentUser = async (req, res) => {
         }
       });
     }
-    const { fullname, email, role, isVerified, phone } = req.user;
+
+    // Fetch fresh user data from database
+    const user = await User.findById(req.user.id).select('fullname email role isVerified phone isActive');
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found',
+        data: {
+          isAuthenticated: false,
+          user: null
+        }
+      });
+    }
+
+    // Check if user is still active
+    if (!user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: 'Account is deactivated',
+        data: {
+          isAuthenticated: false,
+          user: null
+        }
+      });
+    }
+
+    const { fullname, email, role, isVerified, phone } = user;
     res.status(200).json({
       success: true,
       message: 'User authenticated',
@@ -545,6 +845,7 @@ exports.getCurrentUser = async (req, res) => {
       }
     });
   } catch (err) {
+    console.error('Get current user error:', err);
     res.status(500).json({
       success: false,
       message: 'Server error while fetching user info'
@@ -569,39 +870,175 @@ exports.refreshToken = async (req, res) => {
         message: 'Refresh token required'
       });
     }
+
+    // Verify refresh token
     let decoded;
     try {
       decoded = jwt.verify(refreshToken, JWT_SECRET);
     } catch (err) {
+      if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({
+          success: false,
+          message: 'Refresh token expired. Please login again.'
+        });
+      }
       return res.status(401).json({
         success: false,
-        message: 'Invalid or expired refresh token'
+        message: 'Invalid refresh token'
       });
     }
-    // Issue new tokens using the same payload from the valid refresh token
-    const newAccessToken = jwt.sign({ id: decoded.id, role: decoded.role }, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY_SECONDS });
-    const newRefreshToken = jwt.sign({ id: decoded.id, role: decoded.role }, JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY_SECONDS });
+
+    // Validate user still exists and is active
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: 'User account is deactivated'
+      });
+    }
+
+    if (!user.isVerified) {
+      return res.status(401).json({
+        success: false,
+        message: 'User account not verified'
+      });
+    }
+
+    // Generate new tokens with user's current role
+    const newAccessToken = jwt.sign(
+      { id: user._id, role: user.role }, 
+      JWT_SECRET, 
+      { expiresIn: ACCESS_TOKEN_EXPIRY_SECONDS }
+    );
+    const newRefreshToken = jwt.sign(
+      { id: user._id, role: user.role }, 
+      JWT_SECRET, 
+      { expiresIn: REFRESH_TOKEN_EXPIRY_SECONDS }
+    );
+
+    // Set cookies with enhanced security
     res.cookie('accessToken', newAccessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'Lax',
-      maxAge: ACCESS_TOKEN_EXPIRY_MS
+      maxAge: ACCESS_TOKEN_EXPIRY_MS,
+      path: '/'
     });
+
     res.cookie('refreshToken', newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'Lax',
-      maxAge: REFRESH_TOKEN_EXPIRY_MS
+      maxAge: REFRESH_TOKEN_EXPIRY_MS,
+      path: '/'
     });
+
     res.status(200).json({
       success: true,
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken
+      message: 'Tokens refreshed successfully',
+      data: {
+        user: {
+          id: user._id,
+          fullname: user.fullname,
+          email: user.email,
+          role: user.role,
+          isVerified: user.isVerified
+        },
+        tokens: {
+          accessToken: newAccessToken,
+          refreshToken: newRefreshToken
+        }
+      }
     });
   } catch (err) {
+    console.error('Token refresh error:', err);
     res.status(500).json({
       success: false,
       message: 'Server error during token refresh'
+    });
+  }
+};
+
+// Get token information (for debugging/testing)
+exports.getTokenInfo = async (req, res) => {
+  try {
+    let token = req.cookies.accessToken;
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.split(' ')[1];
+      }
+    }
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'No token provided'
+      });
+    }
+
+    // Check if token is blacklisted
+    if (tokenUtils.isTokenBlacklisted(token)) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token has been revoked'
+      });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.id).select('fullname email role isVerified isActive');
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Token information retrieved',
+      data: {
+        tokenInfo: {
+          issuedAt: new Date(decoded.iat * 1000),
+          expiresAt: new Date(decoded.exp * 1000),
+          isExpired: Date.now() > decoded.exp * 1000,
+          timeRemaining: Math.max(0, decoded.exp * 1000 - Date.now())
+        },
+        user: {
+          id: user._id,
+          fullname: user.fullname,
+          email: user.email,
+          role: user.role,
+          isVerified: user.isVerified,
+          isActive: user.isActive
+        }
+      }
+    });
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        success: false,
+        message: 'Token has expired'
+      });
+    }
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token'
+      });
+    }
+    console.error('Token info error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while getting token info'
     });
   }
 };

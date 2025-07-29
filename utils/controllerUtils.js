@@ -260,6 +260,32 @@ const softDelete = async (Model, filter, extraUpdateFields = {}) => {
   );
 };
 
+/**
+ * Token management utilities
+ */
+const tokenUtils = {
+  // In-memory token blacklist (in production, use Redis)
+  blacklistedTokens: new Set(),
+
+  // Add token to blacklist
+  blacklistToken: (token) => {
+    tokenUtils.blacklistedTokens.add(token);
+  },
+
+  // Check if token is blacklisted
+  isTokenBlacklisted: (token) => {
+    return tokenUtils.blacklistedTokens.has(token);
+  },
+
+  // Clear expired tokens from blacklist (run periodically)
+  cleanupBlacklist: () => {
+    // In production, implement proper cleanup with timestamps
+    if (tokenUtils.blacklistedTokens.size > 1000) {
+      tokenUtils.blacklistedTokens.clear();
+    }
+  }
+};
+
 module.exports = {
   handleError,
   sendSuccessResponse,
@@ -276,5 +302,7 @@ module.exports = {
   canAccessCourse,
   canStudentViewOrEnroll,
   isOwner,
-  softDelete 
+  softDelete,
+  checkRoleAccess,
+  tokenUtils
 }; 
