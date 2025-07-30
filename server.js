@@ -27,7 +27,9 @@ const app = express();
 const corsOptions = {
   origin: "http://localhost:5173", // Frontend URL
   credentials: true, // Allow cookies and credentials
-  
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Set-Cookie']
 };
 
 // Middleware

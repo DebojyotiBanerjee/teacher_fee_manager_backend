@@ -44,32 +44,6 @@ router.post('/resend-password-reset-otp', resendPasswordResetOTPValidator, valid
 // Get current user session
 router.get('/me', authenticate(), authController.getCurrentUser);
 
-// Refresh access and refresh tokens
-router.post('/refresh-token', authController.refreshToken);
-
-// Test endpoint to verify token functionality
-router.get('/test-token', authenticate(), (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Token is valid',
-    data: {
-      user: {
-        id: req.user._id,
-        fullname: req.user.fullname,
-        email: req.user.email,
-        role: req.user.role
-      },
-      tokenInfo: {
-        issuedAt: new Date(),
-        expiresIn: process.env.ACCESS_TOKEN_EXPIRY_MS
-      }
-    }
-  });
-});
-
-// Get detailed token information
-router.get('/token-info', authController.getTokenInfo);
-
 // Logout
 router.post('/logout', authController.logout);
 
