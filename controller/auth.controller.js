@@ -12,8 +12,8 @@ const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
 
 // Token expiry settings from environment variables
-const ACCESS_TOKEN_EXPIRY_MS = Number(process.env.ACCESS_TOKEN_EXPIRY_MS) || 7 * 24 * 60 * 60 * 1000; // 7 days default
-const REFRESH_TOKEN_EXPIRY_MS = Number(process.env.REFRESH_TOKEN_EXPIRY_MS) || 7 * 24 * 60 * 60 * 1000; // 7 days default
+const ACCESS_TOKEN_EXPIRY_MS = Number(process.env.ACCESS_TOKEN_EXPIRY_MS) ||  20 * 1000; // 20 seconds default
+const REFRESH_TOKEN_EXPIRY_MS = Number(process.env.REFRESH_TOKEN_EXPIRY_MS) || 60 * 1000; // 60 seconds default
 
 // Convert milliseconds to seconds for JWT
 const ACCESS_TOKEN_EXPIRY_SECONDS = Math.floor(ACCESS_TOKEN_EXPIRY_MS / 1000);
@@ -552,53 +552,61 @@ exports.getCurrentUser = async (req, res) => {
   }
 };
 
-// Refresh access and refresh tokens
+// Refresh access token  
 exports.refreshToken = async (req, res) => {
   try {
-    let refreshToken = req.cookies.refreshToken;
-    if (!refreshToken) {
-      // Fallback to Authorization header
-      const authHeader = req.headers['authorization'];
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        refreshToken = authHeader.split(' ')[1];
-      }
-    }
+    let refreshToken = req.cookies.refreshToken;    
     if (!refreshToken) {
       return res.status(401).json({
         success: false,
         message: 'Refresh token required'
       });
     }
+    
     let decoded;
     try {
       decoded = jwt.verify(refreshToken, JWT_SECRET);
     } catch (err) {
+      // If refresh token is expired, return 401 - no new tokens generated
       return res.status(401).json({
         success: false,
-        message: 'Invalid or expired refresh token'
+        message: 'Refresh token expired. Please login again.'
       });
     }
-    // Issue new tokens using the same payload from the valid refresh token
+    
+    // If refresh token is valid, generate only new access token
     const newAccessToken = jwt.sign({ id: decoded.id, role: decoded.role }, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY_SECONDS });
-    const newRefreshToken = jwt.sign({ id: decoded.id, role: decoded.role }, JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY_SECONDS });
+
+    // Fetch user data to include in response
+    const user = await User.findById(decoded.id).select('fullname email role isVerified phone');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
     res.cookie('accessToken', newAccessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'Lax',
       maxAge: ACCESS_TOKEN_EXPIRY_MS
     });
-    res.cookie('refreshToken', newRefreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Lax',
-      maxAge: REFRESH_TOKEN_EXPIRY_MS
-    });
+    
     res.status(200).json({
       success: true,
+      message: 'Access token refreshed successfully',
       accessToken: newAccessToken,
-      refreshToken: newRefreshToken
+      user: {
+        fullname: user.fullname,
+        email: user.email,
+        role: user.role,
+        isVerified: user.isVerified,
+        phone: user.phone
+      }
     });
   } catch (err) {
+    console.error('Token refresh error:', err);
     res.status(500).json({
       success: false,
       message: 'Server error during token refresh'

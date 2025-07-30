@@ -10,19 +10,8 @@ if (!JWT_SECRET) {
 const authenticate = (requiredRole = null) => async (req, res, next) => {
   try {
     // Try to get token from cookies first, then from Authorization header as fallback
-    let token = req.cookies.accessToken;
+    let token = req.cookies.accessToken;    
     
-    if (!token) {
-      // Fallback to Authorization header
-      const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ 
-          success: false,
-          message: 'No token provided' 
-        });
-      }
-      token = authHeader.split(' ')[1];
-    }
 
     if (!token) {
       return res.status(401).json({ 
