@@ -83,7 +83,7 @@ exports.viewMyBatchesAsTeacher = async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Filtering
-    const filter = {};
+    const filter = { isDeleted: false }; // Only show non-deleted batches
     if (req.query.course) filter.course = req.query.course;
     if (req.query.batchName) filter.batchName = { $regex: req.query.batchName, $options: 'i' };
     if (req.query.mode) filter.mode = req.query.mode;
@@ -246,9 +246,9 @@ exports.updateBatch = async (req, res) => {
         'You must be a teacher with a complete profile.'
       );
     }
-    const batch = await Batch.findById(req.params.id).populate('course');
+    const batch = await Batch.findOne({ _id: req.params.id, isDeleted: false }).populate('course');
     if (!batch) {
-      return handleError({ name: 'NotFound' }, res, 'Batch not found');
+      return handleError({ name: 'NotFound' }, res, 'Batch not found or has been deleted');
     }
     if (!isOwner(batch.course, req.user._id)) {
       return handleError({ name: 'Forbidden', message: 'You do not own this batch.' }, res, 'You do not own this batch.');
@@ -296,9 +296,9 @@ exports.deleteBatch = async (req, res) => {
         'You must be a teacher with a complete profile.'
       );
     }
-    const batch = await Batch.findById(req.params.id).populate('course');
+    const batch = await Batch.findOne({ _id: req.params.id, isDeleted: false }).populate('course');
     if (!batch) {
-      return handleError({ name: 'NotFound' }, res, 'Batch not found');
+      return handleError({ name: 'NotFound' }, res, 'Batch not found or has been deleted');
     }
     if (!isOwner(batch.course, req.user._id)) {
       return handleError({ name: 'Forbidden', message: 'You do not own this batch.' }, res, 'You do not own this batch.');
@@ -337,9 +337,9 @@ exports.viewStudentsInBatch = async (req, res) => {
         'You must be a teacher with a complete profile.'
       );
     }
-    const batch = await Batch.findById(req.params.id).populate('course');
+    const batch = await Batch.findOne({ _id: req.params.id, isDeleted: false }).populate('course');
     if (!batch) {
-      return handleError({ name: 'NotFound' }, res, 'Batch not found');
+      return handleError({ name: 'NotFound' }, res, 'Batch not found or has been deleted');
     }
     if (!isOwner(batch.course, req.user._id)) {
       return handleError({ name: 'Forbidden', message: 'You do not own this batch.' }, res, 'You do not own this batch.');
@@ -484,9 +484,14 @@ exports.viewMyBatchesAsStudent = async (req, res) => {
     const enrollments = await BatchEnrollment.find({ student: studentId })
       .populate({
         path: 'batch',
+        match: { isDeleted: false }, // Only populate non-deleted batches
         populate: { path: 'course', select: 'title' }
       });
-    sendSuccessResponse(res, enrollments, 'Enrolled batches retrieved');
+    
+    // Filter out enrollments where batch is null (deleted batches)
+    const validEnrollments = enrollments.filter(enrollment => enrollment.batch !== null);
+    
+    sendSuccessResponse(res, validEnrollments, 'Enrolled batches retrieved');
   } catch (err) {
     handleError(err, res, 'Failed to retrieve enrolled batches');
   }
@@ -501,9 +506,9 @@ exports.unenrollStudentFromBatch = async (req, res) => {
     if (!batchId || !studentId) {
       return handleError({ name: 'ValidationError' }, res, 'Batch ID and Student ID are required');
     }
-    const batch = await Batch.findById(batchId);
+    const batch = await Batch.findOne({ _id: batchId, isDeleted: false });
     if (!batch) {
-      return handleError({ name: 'NotFound' }, res, 'Batch not found');
+      return handleError({ name: 'NotFound' }, res, 'Batch not found or has been deleted');
     }
     // Only the teacher who owns the course can unenroll
     const course = await Course.findOne({ _id: batch.course, teacher: req.user._id });

@@ -1,5 +1,4 @@
 const DetailTeacher = require('../models/detailTeacher.models');
-const TeacherEnrollment = require('../models/batch.models');
 const { 
   handleError, 
   sendSuccessResponse, 

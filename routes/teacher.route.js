@@ -11,6 +11,7 @@ const { sanitizeInput } = require('../middleware/sanitizer.middleware');
 const batchController = require('../controller/batch.controller');
 const courseController = require('../controller/course.controller');
 const attendanceController = require('../controller/attendence.controller');
+const courseApplicationController = require('../controller/courseApplication.models');
 
 // Test route to check if teacher routes are working
 router.get('/test', (req, res) => {
@@ -54,5 +55,7 @@ router.delete('/course/:id', authenticateTeacher, courseController.deleteCourse)
 // Attendance Management Routes
 router.post('/attendance/mark', authenticateTeacher, Attendance, validator, attendanceController.markAttendance);
 router.get('/attendance', authenticateTeacher, attendanceController.viewAttendance);
+
+router.get('/course-application', authenticateTeacher, courseApplicationController.viewCourseApplication);
 
 module.exports = router;

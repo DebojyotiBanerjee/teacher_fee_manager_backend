@@ -28,6 +28,14 @@ const handleError = (err, res, customMessage = null) => {
       message: 'Invalid ID format'
     });
   }
+
+  if (err.name === 'NotFound') {
+    return res.status(404).json({
+      success: false,
+      message: 'Resource not found'
+    });
+  }
+
   
   return res.status(500).json({
     success: false,

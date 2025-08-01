@@ -1,4 +1,3 @@
-const { findById } = require('../models/batch.models');
 const DetailStudent = require('../models/detailStudent.model');
 const { 
   handleError, 

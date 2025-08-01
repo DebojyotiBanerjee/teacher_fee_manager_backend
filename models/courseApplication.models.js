@@ -15,6 +15,11 @@ const courseApplicationSchema = new Schema({
   appliedAt: {
     type: Date,
     default: Date.now
+  },
+  batch: {
+    type: Schema.Types.ObjectId,
+    ref: 'Batch',
+    required: true
   }
 }, { timestamps: true });
 
