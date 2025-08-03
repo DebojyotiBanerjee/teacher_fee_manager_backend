@@ -11,7 +11,7 @@ const { sanitizeInput } = require('../middleware/sanitizer.middleware');
 const batchController = require('../controller/batch.controller');
 const courseController = require('../controller/course.controller');
 const attendanceController = require('../controller/attendence.controller');
-const courseApplicationController = require('../controller/courseApplication.models');
+const courseApplicationController = require('../controller/courseApplication.controller');
 
 // Test route to check if teacher routes are working
 router.get('/test', (req, res) => {

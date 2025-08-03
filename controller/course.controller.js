@@ -267,54 +267,65 @@ exports.getAllCourses = async (req, res) => {
   }
 };
 
-// Student: View course by ID
-exports.getCourseById = async (req, res) => {
-  logControllerAction('Get Course By ID', req.user, { params: req.params });
-  if (!canStudentViewOrEnroll(req)) return handleError({ name: 'Forbidden', message: 'Only students can view courses.' }, res, 'Only students can view courses.');
-  try {
-    const course = await Course.findOne({ _id: req.params.id, isDeleted: false }).populate('teacher', 'fullname email');
-    if (!course) return handleError({ name: 'NotFound' }, res, 'Course not found');
-    sendSuccessResponse(res, course, 'Course retrieved successfully');
-  } catch (err) {
-    handleError(err, res, 'Failed to retrieve course');
-  }
-};
+
 
 // Student: Enroll in a course
 exports.enrollInCourse = async (req, res) => {
-  logControllerAction('Enroll In Course', req.user, { params: req.params });
-  sanitizeRequest(req);
-  
-  // Destructure request body for clear testing
-  const { courseId } = req.body;
+  logControllerAction('Enroll In Course', req.user, { params: req.params, body: req.body });
+  sanitizeRequest(req);  
+    
+  // Get courseId from URL params (primary) or request body (fallback)
+  const courseId = req.params.id || (req.body && req.body.courseId);
   
   if (!canStudentViewOrEnroll(req)) return handleError({ name: 'Forbidden', message: 'Only students can enroll.' }, res, 'Only students can enroll.');
-  const course = await Course.findById(courseId || req.params.id);
+  
+  if (!courseId) {
+    return handleError({ 
+      name: 'ValidationError', 
+      message: 'Course ID is required. Provide it in URL params or request body.' 
+    }, res, 'Course ID is required');
+  }
+  
+  const course = await Course.findById(courseId);
   if (!course) return handleError({ name: 'NotFound' }, res, 'Course not found');
-  const existing = await checkDuplicate(CourseApplication, { course: courseId || req.params.id, student: req.user._id });
+  
+  const existing = await checkDuplicate(CourseApplication, { course: courseId, student: req.user._id });
   if (existing) return handleError({ name: 'Duplicate', message: 'You have already enrolled in this course.' }, res, 'You have already enrolled in this course.');
+  
   try {
-    const application = new CourseApplication({ course: courseId || req.params.id, student: req.user._id });
+    // Create course application 
+    const applicationData = { 
+      course: courseId, 
+      student: req.user._id 
+    };    
+    
+    const application = new CourseApplication(applicationData);
     await application.save();
-    sendSuccessResponse(res, application, 'Enrolled in course successfully', 201);
+    
+    // Populate the response with course and student details
+    const populatedApplication = await CourseApplication.findById(application._id)
+      .populate('course', 'title subtitle description fee duration')
+      .populate('student', 'fullname email phone');
+    
+    // Get the enrollStudent virtual field
+    const enrollmentData = populatedApplication.enrollStudent;
+    
+    // Combine enrollment data with populated course and student info
+    const responseData = {
+      ...enrollmentData,
+      course: {       
+        title: populatedApplication.course.title,        
+        fee: populatedApplication.course.fee,
+        duration: populatedApplication.course.duration
+      },
+      student: {
+        name: populatedApplication.student.fullname,        
+      }
+    };
+    
+    sendSuccessResponse(res, responseData, 'Enrolled in course successfully', 201);
   } catch (err) {
     handleError(err, res, 'Failed to enroll in course');
   }
 };
 
-// Student: Unenroll from a course
-exports.unenrollFromCourse = async (req, res) => {
-  logControllerAction('Unenroll From Course', req.user, { params: req.params });
-  sanitizeRequest(req);
-  if (!canStudentViewOrEnroll(req)) return handleError({ name: 'Forbidden', message: 'Only students can unenroll.' }, res, 'Only students can unenroll.');
-  const course = await Course.findById(req.params.id);
-  if (!course) return handleError({ name: 'NotFound' }, res, 'Course not found');
-  const application = await CourseApplication.findOne({ course: req.params.id, student: req.user._id });
-  if (!application) return handleError({ name: 'NotFound', message: 'You are not enrolled in this course.' }, res, 'You are not enrolled in this course.');
-  try {
-    await application.deleteOne();
-    sendSuccessResponse(res, null, 'Unenrolled from course successfully');
-  } catch (err) {
-    handleError(err, res, 'Failed to unenroll from course');
-  }
-};
