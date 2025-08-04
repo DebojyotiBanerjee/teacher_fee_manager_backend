@@ -267,6 +267,62 @@ exports.getAllCourses = async (req, res) => {
   }
 };
 
+// Student: View a specific course by ID
+exports.getCourseById = async (req, res) => {
+  logControllerAction('Get Course By ID', req.user, { params: req.params });
+  sanitizeRequest(req);
+  
+  if (!canStudentViewOrEnroll(req)) {
+    return handleError(
+      { name: 'Forbidden', message: 'Only students can view courses.' },
+      res,
+      'Only students can view courses.'
+    );
+  }
+  
+  // Validate course ID format
+  if (!req.params.id || !req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+    return handleError({ name: 'ValidationError', message: 'Invalid course ID format.' }, res, 'Invalid course ID format');
+  }
+  
+  try {
+    const course = await Course.findOne({ 
+      _id: req.params.id, 
+      isDeleted: false 
+    })
+    .populate('teacher', 'fullname email')
+    .select('title subtitle description prerequisites fee duration syllabus teacher createdAt updatedAt');
+    
+    if (!course) {
+      return handleError({ name: 'NotFound' }, res, 'Course not found');
+    }
+    
+    // Check if student is already enrolled in this course
+    const isEnrolled = await CourseApplication.exists({ 
+      course: req.params.id, 
+      student: req.user._id 
+    });
+    
+    // Get enrollment count for this course
+    const enrollmentCount = await CourseApplication.countDocuments({ 
+      course: req.params.id 
+    });
+    
+    // Prepare response with additional metadata
+    const courseData = course.toObject();
+    const responseData = {
+      ...courseData,
+      isEnrolled: !!isEnrolled,
+      enrollmentCount,
+      canEnroll: !isEnrolled // Students can enroll if not already enrolled
+    };
+    
+    sendSuccessResponse(res, responseData, 'Course retrieved successfully');
+  } catch (err) {
+    handleError(err, res, 'Failed to retrieve course');
+  }
+};
+
 
 
 // Student: Enroll in a course
