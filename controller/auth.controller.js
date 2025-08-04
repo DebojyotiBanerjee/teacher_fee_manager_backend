@@ -22,6 +22,7 @@ const REFRESH_TOKEN_EXPIRY_SECONDS = Math.floor(REFRESH_TOKEN_EXPIRY_MS / 1000);
 // Email transporter
 const transporter = nodemailer.createTransport({
   service: 'gmail',
+  secure: Boolean(process.env.SECURE === 'true'),
   auth: {
     user: EMAIL_USER,
     pass: EMAIL_PASS

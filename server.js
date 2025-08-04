@@ -5,6 +5,7 @@ const cors = require('cors');
 const connectDB = require('./config/dbConfig');
 const routes = require('./routes/index.routes');
 require('events').EventEmitter.defaultMaxListeners = 15;
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 // Import all models to ensure they are registered
 require('./models/user.models.js');
