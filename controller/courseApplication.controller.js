@@ -1,6 +1,7 @@
 const Course = require('../models/course.models');
 const CourseApplication = require('../models/courseApplication.models');
 const DetailTeacher = require('../models/detailTeacher.models');
+const Batch = require('../models/batch.models');
 const { 
     handleError,
     sendSuccessResponse,
@@ -55,6 +56,27 @@ exports.viewCourseApplication = async (req, res) => {
             })
             .sort({ appliedAt: -1 });
 
+        // Get batches for all courses
+        const batches = await Batch.find({
+            course: { $in: courseIds },
+            isDeleted: false
+        }).select('batchName course days time maxStrength currentStrength');
+
+        // Create a map of courseId to batches
+        const courseBatchesMap = {};
+        batches.forEach(batch => {
+            if (!courseBatchesMap[batch.course]) {
+                courseBatchesMap[batch.course] = [];
+            }
+            courseBatchesMap[batch.course].push({                
+                batchName: batch.batchName,
+                days: batch.days,
+                time: batch.time,                
+                maxStrength: batch.maxStrength,
+                currentStrength: batch.currentStrength
+            });
+        });
+
         // Transform the data using enrollStudent virtual field
         const transformedApplications = courseApplications.map(app => {
             // Get the enrollStudent virtual field
@@ -65,7 +87,8 @@ exports.viewCourseApplication = async (req, res) => {
                 studentName: app.student.fullname,
                 appliedAt: enrollStudentData.appliedAt,
                 courseName: app.course.title,
-                status: enrollStudentData.status
+                status: enrollStudentData.status,
+                batches: courseBatchesMap[app.course._id] || []
             };
         });
 

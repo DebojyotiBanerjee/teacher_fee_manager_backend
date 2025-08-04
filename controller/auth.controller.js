@@ -7,7 +7,11 @@ const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is required');
 }
-const OTP_EXPIRY_MINUTES = parseInt(process.env.OTP_EXPIRY_MINUTES) || 5;
+// OTP expiry in milliseconds (5 minutes default)
+// Check if the environment variable is already in milliseconds (>= 1000) or minutes
+const envValue = parseInt(process.env.OTP_EXPIRY_MINUTES) || 5;
+const OTP_EXPIRY = envValue >= 1000 ? envValue : envValue * 60 * 1000;
+
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
 
@@ -40,7 +44,7 @@ const sendEmailOTP = async (email, otp) => {
     from: EMAIL_USER,
     to: email,
     subject: 'Your OTP for Verification',
-    text: `Your OTP is: ${otp}. It will expire in ${OTP_EXPIRY_MINUTES} minute(s).`
+    text: `Your OTP is: ${otp}. It will expire in 5 minutes.`
   };
 
   await transporter.sendMail(mailOptions);
@@ -58,7 +62,7 @@ exports.register = async (req, res) => {
       });
     }
 
-    const { fullname, email, phone, password, confirmPassword, role, resend } = req.body;
+    const { fullname, email, phone, password, confirmPassword, role } = req.body;
 
     // Validate role
     const validRoles = ['student', 'teacher']; // Define valid roles here
@@ -69,36 +73,10 @@ exports.register = async (req, res) => {
       });
     }
 
-
-
     if (password !== confirmPassword) {
       return res.status(400).json({
         success: false,
         message: 'Passwords do not match'
-      });
-    }
-
-    if (resend) {
-      const existingUnverifiedUser = await User.findOne({ email, isVerified: false });
-      if (!existingUnverifiedUser) {
-        return res.status(404).json({
-          success: false,
-          message: 'No unverified user found with this email'
-        });
-      }
-      let newOTP;
-      do {
-        newOTP = generateOTP();
-      } while (newOTP === existingUnverifiedUser.otp);
-      const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES + 5 * 60 * 1000);
-      existingUnverifiedUser.otp = newOTP;
-      existingUnverifiedUser.otpExpiry = otpExpiry;
-      await existingUnverifiedUser.save();
-      await sendEmailOTP(email, newOTP);
-      return res.status(200).json({
-        success: true,
-        message: 'New OTP sent to your email',
-        data: { email }
       });
     }
 
@@ -110,8 +88,10 @@ exports.register = async (req, res) => {
       });
     }
 
-    const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES + 5 * 60 * 1000);
+    const otp = generateOTP();    
+    const currentTime = new Date();
+    const otpExpiry = new Date(currentTime.getTime() + OTP_EXPIRY);
+    
 
     const user = new User({
       fullname,
@@ -153,6 +133,8 @@ exports.verifyOTP = async (req, res) => {
         message: 'User not found'
       });
     }
+
+    
     if (new Date() > user.otpExpiry) {
       return res.status(401).json({
         success: false,
@@ -231,7 +213,8 @@ exports.resendOTP = async (req, res) => {
     do {
       newOTP = generateOTP();
     } while (newOTP === user.otp);
-    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES + 5 * 60 * 1000);
+    const currentTime = new Date();
+    const otpExpiry = new Date(currentTime.getTime() + OTP_EXPIRY);
     user.otp = newOTP;
     user.otpExpiry = otpExpiry;
     await user.save();
@@ -283,7 +266,7 @@ exports.login = async (req, res) => {
       do {
         newOTP = generateOTP();
       } while (newOTP === user.otp);
-      const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES + 5 * 60 * 1000);
+      const otpExpiry = new Date(Date.now() + OTP_EXPIRY );
       user.otp = newOTP;
       user.otpExpiry = otpExpiry;
       await user.save();
@@ -388,7 +371,7 @@ exports.forgotPassword = async (req, res) => {
       });
     }
     const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES + 5 * 60 * 1000);
+    const otpExpiry = new Date(Date.now() + OTP_EXPIRY );
     user.resetPasswordOTP = otp;
     user.resetPasswordExpires = otpExpiry;
     await user.save();
@@ -459,7 +442,7 @@ exports.resendPasswordResetOTP = async (req, res) => {
     do {
       newOTP = generateOTP();
     } while (newOTP === user.resetPasswordOTP);
-    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES + 5 * 60 * 1000);
+    const otpExpiry = new Date(Date.now() + OTP_EXPIRY );
     user.resetPasswordOTP = newOTP;
     user.resetPasswordExpires = otpExpiry;
     await user.save();

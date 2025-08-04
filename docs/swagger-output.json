@@ -31,9 +31,6 @@
           "400": {
             "description": "Bad Request"
           },
-          "404": {
-            "description": "Not Found"
-          },
           "409": {
             "description": "Conflict"
           },
@@ -63,9 +60,6 @@
                     "example": "any"
                   },
                   "role": {
-                    "example": "any"
-                  },
-                  "resend": {
                     "example": "any"
                   }
                 }
@@ -941,7 +935,7 @@
         }
       }
     },
-    "/api/teacher/course/my": {
+    "/api/teacher/course/my-courses": {
       "get": {
         "description": "",
         "parameters": [
@@ -1127,6 +1121,55 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        }
+      }
+    },
+    "/api/teacher/debug/batches": {
+      "get": {
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/teacher/debug/update-batch-course": {
+      "put": {
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "batchId": {
+                    "example": "any"
+                  },
+                  "newCourseId": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -1332,6 +1375,26 @@
         }
       }
     },
+    "/api/user/courses/{id}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/user/course/{id}/enroll": {
       "post": {
         "description": "",
@@ -1498,7 +1561,7 @@
         }
       }
     },
-    "/api/user/batch/my": {
+    "/api/user/batch/my-batches": {
       "get": {
         "description": "",
         "responses": {
