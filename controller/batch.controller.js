@@ -352,11 +352,11 @@ exports.viewStudentsInBatch = async (req, res) => {
 
     // Get enrolled students with attendance stats
     const [enrollments, total] = await Promise.all([
-      CourseApplication.find({ course: batch.course })
+      BatchEnrollment.find({ batch: req.params.id })
         .populate('student', 'fullname email')
         .skip(skip)
         .limit(limit),
-      CourseApplication.countDocuments({ course: batch.course })
+      BatchEnrollment.countDocuments({ batch: req.params.id })
     ]);
 
     // Get attendance stats for each student
@@ -375,7 +375,7 @@ exports.viewStudentsInBatch = async (req, res) => {
 
         return {
           student: enrollment.student,
-          enrollmentDate: enrollment.appliedAt,
+          enrollmentDate: enrollment.enrolledAt,
           attendanceStats: {
             totalClasses,
             presentClasses,
@@ -456,13 +456,13 @@ exports.enrollInBatch = async (req, res) => {
       batch: { $ne: batchId }
     }).populate('batch');
     if (alreadyEnrolled && alreadyEnrolled.batch.course.toString() === batch.course._id.toString()) {
-      return handleError({ name: 'Forbidden' }, res, 'Already enrolled in another batch for this course');
+      return handleError({ name: 'Duplicate', message: 'Already enrolled in another batch for this course' }, res);
     }
     // Check if already enrolled in a batch with the same timing (across all courses)
     const sameTimeBatch = await BatchEnrollment.findOne({ student: studentId })
       .populate('batch');
     if (sameTimeBatch && sameTimeBatch.batch.time === batch.time) {
-      return handleError({ name: 'Forbidden' }, res, 'Already enrolled in a batch with the same timing');
+      return handleError({ name: 'Duplicate' }, res, 'Already enrolled in a batch with the same timing');
     }
     // Enroll
     await BatchEnrollment.create({ batch: batchId, student: studentId });
@@ -470,9 +470,6 @@ exports.enrollInBatch = async (req, res) => {
     await batch.save();
     sendSuccessResponse(res, { batchId, currentStrength: batch.currentStrength, maxStrength: batch.maxStrength }, 'Enrolled in batch successfully', 201);
   } catch (err) {
-    if (err.code === 11000) {
-      return handleError({ name: 'Duplicate', message: 'Already enrolled in this batch' }, res, 'Already enrolled in this batch');
-    }
     handleError(err, res, 'Failed to enroll in batch');
   }
 };
@@ -508,17 +505,23 @@ exports.unenrollStudentFromBatch = async (req, res) => {
     }
     const batch = await Batch.findOne({ _id: batchId, isDeleted: false });
     if (!batch) {
-      return handleError({ name: 'NotFound' }, res, 'Batch not found or has been deleted');
+      return handleError({ name: 'NotFound', message: 'Batch not found or has been deleted' }, res);
     }
     // Only the teacher who owns the course can unenroll
     const course = await Course.findOne({ _id: batch.course, teacher: req.user._id });
     if (!course) {
       return handleError({ name: 'Forbidden' }, res, 'You do not own this batch');
     }
+    // Debug: Check if enrollment exists
+    const existingEnrollment = await BatchEnrollment.findOne({ batch: batchId, student: studentId });
+    console.log('Existing enrollment:', existingEnrollment);
+    console.log('Searching for batchId:', batchId, 'studentId:', studentId);
+    
     // Remove enrollment
     const result = await BatchEnrollment.findOneAndDelete({ batch: batchId, student: studentId });
+    console.log('Delete result:', result);
     if (!result) {
-      return handleError({ name: 'NotFound' }, res, 'Student not enrolled in this batch');
+      return handleError({ name: 'NotFound', message: 'Student not enrolled in this batch' }, res);
     }
     batch.currentStrength = Math.max(0, batch.currentStrength - 1);
     await batch.save();
