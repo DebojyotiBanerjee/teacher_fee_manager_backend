@@ -15,8 +15,24 @@ const courseApplicationSchema = new Schema({
   appliedAt: {
     type: Date,
     default: Date.now
-  }
+  }    
 }, { timestamps: true });
+
+// Virtual for enrollStudent
+courseApplicationSchema.virtual('enrollStudent').get(function() {
+  return {
+    enrollmentId: this._id,
+    courseId: this.course,
+    studentId: this.student,
+    appliedAt: this.appliedAt,
+    enrollmentDate: this.createdAt,
+    status: 'enrolled'
+  };
+});
+
+// Ensure virtuals are included when converting to JSON
+courseApplicationSchema.set('toJSON', { virtuals: true });
+courseApplicationSchema.set('toObject', { virtuals: true });
 
 courseApplicationSchema.index({ course: 1, student: 1 }, { unique: true });
 

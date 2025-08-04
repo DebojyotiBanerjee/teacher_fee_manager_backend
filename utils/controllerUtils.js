@@ -7,13 +7,19 @@ const handleError = (err, res, customMessage = null) => {
   console.error('Controller Error:', err);
   
   // Handle specific error types
-  if (err.name === 'ValidationError') {
-    return res.status(400).json({
-      success: false,
-      message: customMessage || 'Validation failed',
-      errors: err.errors ? Object.values(err.errors).map(e => e.message) : [customMessage || 'Validation failed']
-    });
-  }
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: customMessage || 'Validation failed',
+        errors: err.errors ? Object.values(err.errors).map(e => e.message) : [customMessage || 'Validation failed']
+      });
+    }
+    if(err.name === 'Duplicate') {
+      return res.status(409).json({
+        success: false,
+        message: err.message || 'Duplicate entry found'
+      });
+    }
   
   if (err.name === 'MongoError' && err.code === 11000) {
     return res.status(409).json({
@@ -28,6 +34,14 @@ const handleError = (err, res, customMessage = null) => {
       message: 'Invalid ID format'
     });
   }
+
+  if (err.name === 'NotFound') {
+    return res.status(404).json({
+      success: false,
+      message: err.message || 'Resource not found'
+    });
+  }
+
   
   return res.status(500).json({
     success: false,

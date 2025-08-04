@@ -22,9 +22,9 @@ router.delete('/detail', authenticateStudent, detailStudentController.deleteDeta
 
 // Student Course Access
 router.get('/courses',authenticateStudent, courseController.getAllCourses);
-router.get('/course/:id',authenticateStudent, courseController.getCourseById);
+router.get('/courses/:id', authenticateStudent, courseController.getCourseById);
 router.post('/course/:id/enroll', authenticateStudent, courseController.enrollInCourse);
-router.delete('/course/:id/unenroll', authenticateStudent, courseController.unenrollFromCourse);
+
 
 // Student Attendance Routes
 router.get('/attendance', authenticateStudent, attendanceController.viewStudentAttendance);
@@ -32,6 +32,6 @@ router.get('/attendance', authenticateStudent, attendanceController.viewStudentA
 // Student Batch Access
 router.get('/batches/available', authenticateStudent, batchController.viewAvailableBatches);
 router.post('/batch/enroll', authenticateStudent, batchController.enrollInBatch);
-router.get('/batch/my', authenticateStudent, batchController.viewMyBatchesAsStudent);
+router.get('/batch/my-batches', authenticateStudent, batchController.viewMyBatchesAsStudent);
 
 module.exports = router;

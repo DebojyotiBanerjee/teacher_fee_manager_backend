@@ -31,9 +31,6 @@
           "400": {
             "description": "Bad Request"
           },
-          "404": {
-            "description": "Not Found"
-          },
           "409": {
             "description": "Conflict"
           },
@@ -63,9 +60,6 @@
                     "example": "any"
                   },
                   "role": {
-                    "example": "any"
-                  },
-                  "resend": {
                     "example": "any"
                   }
                 }
@@ -336,15 +330,6 @@
     "/api/auth/me": {
       "get": {
         "description": "",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -364,21 +349,15 @@
     "/api/auth/refresh-token": {
       "post": {
         "description": "",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "OK"
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
           },
           "500": {
             "description": "Internal Server Error"
@@ -439,7 +418,28 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "isProfileComplete": {
+                  "gender": {
+                    "example": "any"
+                  },
+                  "qualifications": {
+                    "example": "any"
+                  },
+                  "experience": {
+                    "example": "any"
+                  },
+                  "address": {
+                    "example": "any"
+                  },
+                  "subjectsTaught": {
+                    "example": "any"
+                  },
+                  "socialMedia": {
+                    "example": "any"
+                  },
+                  "profilePic": {
+                    "example": "any"
+                  },
+                  "dob": {
                     "example": "any"
                   }
                 }
@@ -478,7 +478,34 @@
                   "role": {
                     "example": "any"
                   },
-                  "isProfileComplete": {
+                  "fullname": {
+                    "example": "any"
+                  },
+                  "phone": {
+                    "example": "any"
+                  },
+                  "gender": {
+                    "example": "any"
+                  },
+                  "qualifications": {
+                    "example": "any"
+                  },
+                  "experience": {
+                    "example": "any"
+                  },
+                  "address": {
+                    "example": "any"
+                  },
+                  "subjectsTaught": {
+                    "example": "any"
+                  },
+                  "socialMedia": {
+                    "example": "any"
+                  },
+                  "profilePic": {
+                    "example": "any"
+                  },
+                  "dob": {
                     "example": "any"
                   }
                 }
@@ -665,7 +692,28 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "course": {
+                    "example": "any"
+                  },
                   "batchName": {
+                    "example": "any"
+                  },
+                  "startDate": {
+                    "example": "any"
+                  },
+                  "days": {
+                    "example": "any"
+                  },
+                  "time": {
+                    "example": "any"
+                  },
+                  "mode": {
+                    "example": "any"
+                  },
+                  "maxStrength": {
+                    "example": "any"
+                  },
+                  "description": {
                     "example": "any"
                   }
                 }
@@ -770,6 +818,24 @@
                 "properties": {
                   "title": {
                     "example": "any"
+                  },
+                  "subtitle": {
+                    "example": "any"
+                  },
+                  "description": {
+                    "example": "any"
+                  },
+                  "prerequisites": {
+                    "example": "any"
+                  },
+                  "fee": {
+                    "example": "any"
+                  },
+                  "duration": {
+                    "example": "any"
+                  },
+                  "syllabus": {
+                    "example": "any"
                   }
                 }
               }
@@ -794,6 +860,41 @@
         "responses": {
           "400": {
             "description": "Bad Request"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "example": "any"
+                  },
+                  "subtitle": {
+                    "example": "any"
+                  },
+                  "description": {
+                    "example": "any"
+                  },
+                  "prerequisites": {
+                    "example": "any"
+                  },
+                  "fee": {
+                    "example": "any"
+                  },
+                  "duration": {
+                    "example": "any"
+                  },
+                  "syllabus": {
+                    "example": "any"
+                  },
+                  "teacher": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
           }
         }
       },
@@ -834,7 +935,7 @@
         }
       }
     },
-    "/api/teacher/course/my": {
+    "/api/teacher/course/my-courses": {
       "get": {
         "description": "",
         "parameters": [
@@ -1014,6 +1115,65 @@
         }
       }
     },
+    "/api/teacher/course-application": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/teacher/debug/batches": {
+      "get": {
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/teacher/debug/update-batch-course": {
+      "put": {
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "batchId": {
+                    "example": "any"
+                  },
+                  "newCourseId": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/user/dashboard": {
       "get": {
         "description": "",
@@ -1036,6 +1196,35 @@
           },
           "409": {
             "description": "Conflict"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "gender": {
+                    "example": "any"
+                  },
+                  "education": {
+                    "example": "any"
+                  },
+                  "guardian": {
+                    "example": "any"
+                  },
+                  "address": {
+                    "example": "any"
+                  },
+                  "dob": {
+                    "example": "any"
+                  },
+                  "subjects": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
           }
         }
       },
@@ -1067,6 +1256,24 @@
                     "example": "any"
                   },
                   "role": {
+                    "example": "any"
+                  },
+                  "gender": {
+                    "example": "any"
+                  },
+                  "education": {
+                    "example": "any"
+                  },
+                  "guardian": {
+                    "example": "any"
+                  },
+                  "address": {
+                    "example": "any"
+                  },
+                  "dob": {
+                    "example": "any"
+                  },
+                  "subjects": {
                     "example": "any"
                   }
                 }
@@ -1168,7 +1375,7 @@
         }
       }
     },
-    "/api/user/course/{id}": {
+    "/api/user/courses/{id}": {
       "get": {
         "description": "",
         "parameters": [
@@ -1205,25 +1412,19 @@
           "default": {
             "description": ""
           }
-        }
-      }
-    },
-    "/api/user/course/{id}/unenroll": {
-      "delete": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "courseId": {
+                    "example": "any"
+                  }
+                }
+              }
             }
-          }
-        ],
-        "responses": {
-          "default": {
-            "description": ""
           }
         }
       }
@@ -1308,6 +1509,20 @@
         "description": "",
         "parameters": [
           {
+            "name": "sortBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "course",
             "in": "query",
             "schema": {
@@ -1336,7 +1551,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "batch": {
+                  "batchId": {
                     "example": "any"
                   }
                 }
@@ -1346,74 +1561,9 @@
         }
       }
     },
-    "/api/user/batch/my": {
+    "/api/user/batch/my-batches": {
       "get": {
         "description": "",
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "course",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "batchName",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "mode",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "startDate",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "endDate",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sortBy",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sortOrder",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "default": {
             "description": ""
