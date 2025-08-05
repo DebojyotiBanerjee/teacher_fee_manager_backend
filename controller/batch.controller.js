@@ -68,7 +68,7 @@ exports.createBatch = async (req, res) => {
 exports.viewMyBatchesAsTeacher = async (req, res) => {
   try {
     logControllerAction('Get My Batches', req.user);
-    
+
     if (!(await canAccessCourse(req, DetailTeacher, Course))) {
       return handleError(
         { name: 'Forbidden', message: 'You must be a teacher with a complete profile.' },
@@ -119,13 +119,13 @@ exports.viewMyBatchesAsTeacher = async (req, res) => {
 
         // Get attendance stats
         const totalAttendanceRecords = await Attendance.countDocuments({ course: batch.course });
-        const presentRecords = await Attendance.countDocuments({ 
-          course: batch.course, 
-          status: 'present' 
+        const presentRecords = await Attendance.countDocuments({
+          course: batch.course,
+          status: 'present'
         });
 
-        const attendancePercentage = totalAttendanceRecords > 0 
-          ? Math.round((presentRecords / totalAttendanceRecords) * 100) 
+        const attendancePercentage = totalAttendanceRecords > 0
+          ? Math.round((presentRecords / totalAttendanceRecords) * 100)
           : 0;
 
         return {
@@ -182,10 +182,12 @@ exports.getBatchById = async (req, res) => {
     // Get detailed attendance stats
     const attendanceStats = await Attendance.aggregate([
       { $match: { course: batch.course } },
-      { $group: {
-        _id: '$status',
-        count: { $sum: 1 }
-      }}
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
     ]);
 
     const stats = {
@@ -200,8 +202,8 @@ exports.getBatchById = async (req, res) => {
     });
 
     const totalAttendance = Object.values(stats).reduce((sum, count) => sum + count, 0);
-    const attendancePercentage = totalAttendance > 0 
-      ? Math.round((stats.present / totalAttendance) * 100) 
+    const attendancePercentage = totalAttendance > 0
+      ? Math.round((stats.present / totalAttendance) * 100)
       : 0;
 
     sendSuccessResponse(res, {
@@ -227,15 +229,34 @@ exports.getBatchById = async (req, res) => {
   }
 };
 
+//get batch details for students
+exports.getMyBatchById = async (req, res) => {
+  try {
+    logControllerAction('Get My Batch By ID', req.user, { params: req.params });
+
+    const batch = await Batch.findOne({ _id: req.params.id, isDeleted: false }).populate('course');
+
+    if (!batch) {
+      return handleError({ name: 'NotFound' }, res, "Batch not Found");
+    }
+
+    sendSuccessResponse(res, {
+      batch
+    }, "Batch Details retrieved successfully")
+  }catch(err){
+    handleError(err,res,"Failed to retrieve batch details")
+  }
+}
+
 // Teacher: Update batch
 exports.updateBatch = async (req, res) => {
   try {
     logControllerAction('Update Batch', req.user, { body: req.body, params: req.params });
     sanitizeRequest(req);
-    
+
     // Destructure request body for clear testing
     const { course, batchName, startDate, days, time, mode, maxStrength, description } = req.body;
-    
+
     if (req.user.role !== 'teacher') {
       return handleError({ name: 'Forbidden', message: 'Only teachers can update batches.' }, res, 'Only teachers can update batches.');
     }
@@ -255,8 +276,8 @@ exports.updateBatch = async (req, res) => {
     }
     // Check for duplicate batch name if batchName is being updated
     if (batchName && batchName !== batch.batchName) {
-      const existingBatch = await Batch.findOne({ 
-        course: batch.course, 
+      const existingBatch = await Batch.findOne({
+        course: batch.course,
         batchName,
         _id: { $ne: req.params.id }
       });
@@ -362,15 +383,15 @@ exports.viewStudentsInBatch = async (req, res) => {
     // Get attendance stats for each student
     const studentsWithStats = await Promise.all(
       enrollments.map(async (enrollment) => {
-        const studentAttendance = await Attendance.find({ 
-          course: batch.course, 
-          student: enrollment.student._id 
+        const studentAttendance = await Attendance.find({
+          course: batch.course,
+          student: enrollment.student._id
         });
 
         const totalClasses = studentAttendance.length;
         const presentClasses = studentAttendance.filter(a => a.status === 'present').length;
-        const attendancePercentage = totalClasses > 0 
-          ? Math.round((presentClasses / totalClasses) * 100) 
+        const attendancePercentage = totalClasses > 0
+          ? Math.round((presentClasses / totalClasses) * 100)
           : 0;
 
         return {
@@ -438,7 +459,7 @@ exports.enrollInBatch = async (req, res) => {
     // Destructure request body for clear testing
     const { batchId } = req.body;
     const studentId = req.user._id;
-    
+
     if (!batchId) {
       return handleError({ name: 'ValidationError' }, res, 'Batch ID is required');
     }
@@ -484,10 +505,10 @@ exports.viewMyBatchesAsStudent = async (req, res) => {
         match: { isDeleted: false }, // Only populate non-deleted batches
         populate: { path: 'course', select: 'title' }
       });
-    
+
     // Filter out enrollments where batch is null (deleted batches)
     const validEnrollments = enrollments.filter(enrollment => enrollment.batch !== null);
-    
+
     sendSuccessResponse(res, validEnrollments, 'Enrolled batches retrieved');
   } catch (err) {
     handleError(err, res, 'Failed to retrieve enrolled batches');
@@ -499,7 +520,7 @@ exports.unenrollStudentFromBatch = async (req, res) => {
   try {
     // Destructure request body for clear testing
     const { batchId, studentId } = req.body;
-    
+
     if (!batchId || !studentId) {
       return handleError({ name: 'ValidationError' }, res, 'Batch ID and Student ID are required');
     }
@@ -516,7 +537,7 @@ exports.unenrollStudentFromBatch = async (req, res) => {
     const existingEnrollment = await BatchEnrollment.findOne({ batch: batchId, student: studentId });
     console.log('Existing enrollment:', existingEnrollment);
     console.log('Searching for batchId:', batchId, 'studentId:', studentId);
-    
+
     // Remove enrollment
     const result = await BatchEnrollment.findOneAndDelete({ batch: batchId, student: studentId });
     console.log('Delete result:', result);
