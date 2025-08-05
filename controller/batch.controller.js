@@ -36,8 +36,8 @@ exports.createBatch = async (req, res) => {
       );
     }
 
-    // Check for duplicate batch name for the same course
-    const existingBatch = await Batch.findOne({ course, batchName });
+    // Check for duplicate batch name for the same course (excluding soft deleted)
+    const existingBatch = await Batch.findOne({ course, batchName, isDeleted: { $ne: true } });
     if (existingBatch) {
       return handleError(
         { name: 'Duplicate', message: 'A batch with this name already exists for this course.' },

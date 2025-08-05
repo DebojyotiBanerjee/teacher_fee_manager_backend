@@ -78,7 +78,7 @@ const checkRoleAccess = (req, requiredRole) => {
  * Check if profile already exists
  */
 const checkExistingProfile = async (Model, userId) => {
-  const existingProfile = await Model.findOne({ user: userId });
+  const existingProfile = await Model.findOne({ user: userId, isDeleted: { $ne: true } });
   return {
     exists: !!existingProfile,
     profile: existingProfile
@@ -224,7 +224,7 @@ const checkOwnership = (doc, userId) => {
  * Check for duplicate document in a collection
  */
 const checkDuplicate = async (Model, filter) => {
-  return await Model.findOne(filter);
+  return await Model.findOne({ ...filter, isDeleted: { $ne: true } });
 };
 
 /**
