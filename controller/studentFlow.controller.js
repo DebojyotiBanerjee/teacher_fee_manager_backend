@@ -62,7 +62,7 @@ exports.getAvailableBatches = async (req, res) => {
     // Get student profile for eligibility filtering
     let detailStudent = null;
     if (req.user && req.user.id) {
-      detailStudent = await DetailStudent.findOne({ user: req.user.id });
+      detailStudent = await DetailStudent.findOne({ user: req.user.id, isDeleted: { $ne: true } });
       if (!hasAllRequiredFields(detailStudent)) {
         return sendError(res, 403, 'You must complete all required profile sections to view available batches');
       }
@@ -114,7 +114,7 @@ exports.applyToBatch = async (req, res) => {
     if (!isValidObjectId(batchId)) {
       return sendError(res, 400, 'Invalid batch ID');
     }
-    const detailStudent = await DetailStudent.findOne({ user: studentId });
+    const detailStudent = await DetailStudent.findOne({ user: studentId, isDeleted: { $ne: true } });
     if (!detailStudent) {
       return sendError(res, 404, 'Student profile not found. Please complete your profile first.');
     }
@@ -205,7 +205,7 @@ exports.approveEnrollment = async (req, res) => {
     }
 
     // Find student profile
-    const detailStudent = await DetailStudent.findOne({ user: studentId });
+    const detailStudent = await DetailStudent.findOne({ user: studentId, isDeleted: { $ne: true } });
     if (!detailStudent) {
       return res.status(404).json({ error: 'Student profile not found' });
     }
@@ -266,7 +266,7 @@ exports.getMyBatches = async (req, res) => {
     const studentId = req.user.id;
     const { status } = req.query; // Optional filter by enrollment status
 
-    const detailStudent = await DetailStudent.findOne({ user: studentId })
+    const detailStudent = await DetailStudent.findOne({ user: studentId, isDeleted: { $ne: true } })
       .populate({
         path: 'enrolledBatches.batch',
         populate: {
@@ -308,7 +308,7 @@ exports.getEnrollmentDetails = async (req, res) => {
     const studentId = req.user.id;
     const batchId = req.params.batchId;
 
-    const detailStudent = await DetailStudent.findOne({ user: studentId })
+    const detailStudent = await DetailStudent.findOne({ user: studentId, isDeleted: { $ne: true } })
       .populate({
         path: 'enrolledBatches.batch',
         populate: {
@@ -355,7 +355,7 @@ exports.updateAttendance = async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to update attendance for this batch' });
     }
 
-    const detailStudent = await DetailStudent.findOne({ user: studentId });
+    const detailStudent = await DetailStudent.findOne({ user: studentId, isDeleted: { $ne: true } });
     if (!detailStudent) {
       return res.status(404).json({ error: 'Student profile not found' });
     }
@@ -401,7 +401,7 @@ exports.markFeePaid = async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to update fee status for this batch' });
     }
 
-    const detailStudent = await DetailStudent.findOne({ user: studentId });
+    const detailStudent = await DetailStudent.findOne({ user: studentId, isDeleted: { $ne: true } });
     if (!detailStudent) {
       return res.status(404).json({ error: 'Student profile not found' });
     }

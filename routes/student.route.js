@@ -23,8 +23,10 @@ router.delete('/detail', authenticateStudent, detailStudentController.deleteDeta
 
 // Student Course Access
 router.get('/courses',authenticateStudent, courseController.getAllCourses);
+router.get('/courses/applied', authenticateStudent, courseController.viewMyCourseApplications);
 router.get('/courses/:id', authenticateStudent, courseController.getCourseById);
 router.post('/course/:id/enroll', authenticateStudent, courseController.enrollInCourse);
+
 
 
 // Student Attendance Routes

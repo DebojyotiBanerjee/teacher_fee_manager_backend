@@ -42,7 +42,8 @@ exports.resendOTPValidator = [
 exports.loginValidator = [
   body('login')
     .notEmpty().withMessage('Login (email) is required')
-    .isEmail().withMessage('Valid email is required'),
+    .isEmail().withMessage('Valid email is required')
+    .matches(/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/).withMessage('Please enter a valid email address'),
   body('password')
     .notEmpty().withMessage('Password is required')
 ];

@@ -36,8 +36,8 @@ exports.createBatch = async (req, res) => {
       );
     }
 
-    // Check for duplicate batch name for the same course
-    const existingBatch = await Batch.findOne({ course, batchName });
+    // Check for duplicate batch name for the same course (excluding soft deleted)
+    const existingBatch = await Batch.findOne({ course, batchName, isDeleted: { $ne: true } });
     if (existingBatch) {
       return handleError(
         { name: 'Duplicate', message: 'A batch with this name already exists for this course.' },
@@ -82,9 +82,26 @@ exports.viewMyBatchesAsTeacher = async (req, res) => {
     const limit = parseInt(req.query.limit) > 0 ? parseInt(req.query.limit) : 10;
     const skip = (page - 1) * limit;
 
-    // Filtering
-    const filter = { isDeleted: false }; // Only show non-deleted batches
-    if (req.query.course) filter.course = req.query.course;
+    // Get teacher's courses first
+    const teacherCourses = await Course.find({ teacher: req.user._id, isDeleted: false }).select('_id');
+    const teacherCourseIds = teacherCourses.map(course => course._id);
+
+    // Filtering - only show batches for teacher's courses
+    const filter = { 
+      isDeleted: false,
+      course: { $in: teacherCourseIds } // Only batches for teacher's courses
+    };
+    if (req.query.course) {
+      // Additional check to ensure the requested course belongs to the teacher
+      if (!teacherCourseIds.includes(req.query.course)) {
+        return handleError(
+          { name: 'Forbidden', message: 'You can only view batches for your own courses.' },
+          res,
+          'You can only view batches for your own courses.'
+        );
+      }
+      filter.course = req.query.course;
+    }
     if (req.query.batchName) filter.batchName = { $regex: req.query.batchName, $options: 'i' };
     if (req.query.mode) filter.mode = req.query.mode;
     if (req.query.startDate) filter.startDate = { $gte: new Date(req.query.startDate) };

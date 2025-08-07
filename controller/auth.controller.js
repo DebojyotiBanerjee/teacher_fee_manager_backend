@@ -259,8 +259,7 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Always generate and send new OTP if user is authenticated but not verified
-    let otpSent = false;
+    // Always generate and send new OTP if user is authenticated but not verified    
     if (!user.isVerified) {
       let newOTP;
       do {
