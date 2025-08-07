@@ -10,6 +10,7 @@ const { sanitizeInput } = require('../middleware/sanitizer.middleware');
 const courseController = require('../controller/course.controller');
 const attendanceController = require('../controller/attendence.controller');
 const batchController = require('../controller/batch.controller');
+const batchEnrollmentController= require('../controller/batchEnrollment.controller')
 
 // Student Dashboard
 router.get('/dashboard', authenticateStudent, detailStudentController.studentDashboard);
@@ -33,5 +34,8 @@ router.get('/attendance', authenticateStudent, attendanceController.viewStudentA
 router.get('/batches/available', authenticateStudent, batchController.viewAvailableBatches);
 router.post('/batch/enroll', authenticateStudent, batchController.enrollInBatch);
 router.get('/batch/my-batches', authenticateStudent, batchController.viewMyBatchesAsStudent);
+router.get("/batches/enrolled",authenticateStudent,batchEnrollmentController.getStudentEnrolledBatches)
+router.get('/batches/:id', authenticateStudent, batchController.getMyBatchById);
+
 
 module.exports = router;
