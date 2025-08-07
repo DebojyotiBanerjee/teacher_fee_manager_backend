@@ -142,48 +142,7 @@ exports.getStudentNotifications = async (req, res) => {
   }
 };
 
-// Mark notification as read
-exports.markNotificationAsRead = async (req, res) => {
-  try {
-    logControllerAction('Mark Notification As Read', req.user, { params: req.params });
-    
-    const { notificationId } = req.params;
-    
-    if (!notificationId) {
-      return handleError(
-        { name: 'ValidationError', message: 'Notification ID is required.' },
-        res,
-        'Notification ID is required.'
-      );
-    }
 
-    // Find and update the notification
-    const notification = await Notification.findOneAndUpdate(
-      { 
-        _id: notificationId,
-        $or: [
-          { teacher: req.user._id },
-          { student: req.user._id }
-        ],
-        isDeleted: false
-      },
-      { status: 'read' },
-      { new: true }
-    );
-
-    if (!notification) {
-      return handleError(
-        { name: 'NotFound', message: 'Notification not found or you do not have access to it.' },
-        res,
-        'Notification not found or you do not have access to it.'
-      );
-    }
-
-    sendSuccessResponse(res, notification, 'Notification marked as read successfully');
-  } catch (err) {
-    handleError(err, res, 'Failed to mark notification as read');
-  }
-};
 
 // Mark all notifications as read
 exports.markAllNotificationsAsRead = async (req, res) => {

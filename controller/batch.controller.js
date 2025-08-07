@@ -504,9 +504,10 @@ exports.enrollInBatch = async (req, res) => {
     }
     // Enroll
     await BatchEnrollment.create({ batch: batchId, student: studentId });
-    batch.currentStrength += 1;
-    await batch.save();
-    sendSuccessResponse(res, { batchId, currentStrength: batch.currentStrength, maxStrength: batch.maxStrength }, 'Enrolled in batch successfully', 201);
+    // Always recalculate currentStrength
+    const count = await BatchEnrollment.countDocuments({ batch: batchId });
+    await Batch.findByIdAndUpdate(batchId, { currentStrength: count });
+    sendSuccessResponse(res, { batchId, currentStrength: count, maxStrength: batch.maxStrength }, 'Enrolled in batch successfully', 201);
   } catch (err) {
     handleError(err, res, 'Failed to enroll in batch');
   }
@@ -557,12 +558,12 @@ exports.unenrollStudentFromBatch = async (req, res) => {
 
     // Remove enrollment
     const result = await BatchEnrollment.findOneAndDelete({ batch: batchId, student: studentId });
-    console.log('Delete result:', result);
     if (!result) {
       return handleError({ name: 'NotFound', message: 'Student not enrolled in this batch' }, res);
     }
-    batch.currentStrength = Math.max(0, batch.currentStrength - 1);
-    await batch.save();
+    // Always recalculate currentStrength
+    const count = await BatchEnrollment.countDocuments({ batch: batchId });
+    await Batch.findByIdAndUpdate(batchId, { currentStrength: count });
     sendSuccessResponse(res, null, 'Student unenrolled from batch successfully');
   } catch (err) {
     handleError(err, res, 'Failed to unenroll student from batch');

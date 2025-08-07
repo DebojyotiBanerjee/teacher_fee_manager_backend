@@ -385,3 +385,45 @@ exports.enrollInCourse = async (req, res) => {
   }
 };
 
+// Student: View all courses the student has applied to
+exports.viewMyCourseApplications = async (req, res) => {
+  logControllerAction('View My Course Applications', req.user);
+  if (req.user.role !== 'student') {
+    return handleError({ name: 'Forbidden', message: 'Only students can view their course applications.' }, res, 'Only students can view their course applications.');
+  }
+  try {
+    // Find all course applications for this student
+    const applications = await CourseApplication.find({ student: req.user._id })
+      .populate({
+        path: 'course',
+        select: 'title subtitle description fee duration teacher',
+        populate: { path: 'teacher', select: 'fullname email' }
+      })
+      .sort({ appliedAt: -1 });
+
+    // Transform the data
+    const result = applications.map(app => {
+      const enrollStudentData = app.enrollStudent;
+      return {        
+        appliedAt: enrollStudentData.appliedAt,        
+        course: app.course ? {
+          id: app.course._id,
+          title: app.course.title,
+          fee: app.course.fee,
+          duration: app.course.duration,
+          teacher: app.course.teacher ? {
+            fullname: app.course.teacher.fullname,            
+          } : null
+        } : null
+      };
+    });
+
+    return sendSuccessResponse(res, {
+      applications: result,
+      total: result.length
+    }, 'Your course applications fetched successfully');
+  } catch (err) {
+    return handleError(err, res, 'Failed to fetch your course applications');
+  }
+};
+
