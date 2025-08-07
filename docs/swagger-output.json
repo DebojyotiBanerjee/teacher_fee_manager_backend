@@ -1326,6 +1326,16 @@
         }
       }
     },
+    "/api/user/courses/applied": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/user/courses/{id}": {
       "get": {
         "description": "",
@@ -1612,26 +1622,6 @@
         }
       }
     },
-    "/api/notification/teacher/read/{notificationId}": {
-      "put": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "notificationId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
     "/api/notification/teacher/read-all": {
       "put": {
         "description": "",
@@ -1656,26 +1646,6 @@
           {
             "name": "limit",
             "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/notification/student/read/{notificationId}": {
-      "put": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "notificationId",
-            "in": "path",
-            "required": true,
             "schema": {
               "type": "string"
             }
