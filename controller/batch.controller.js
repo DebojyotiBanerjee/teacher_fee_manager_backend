@@ -472,24 +472,4 @@ exports.viewAvailableBatches = async (req, res) => {
 
 
 
-// STUDENT: View enrolled batch(es)
-exports.viewMyBatchesAsStudent = async (req, res) => {
-  try {
-    const studentId = req.user._id;
-    const enrollments = await BatchEnrollment.find({ student: studentId })
-      .populate({
-        path: 'batch',
-        match: { isDeleted: false }, // Only populate non-deleted batches
-        populate: { path: 'course', select: 'title' }
-      });
-
-    // Filter out enrollments where batch is null (deleted batches)
-    const validEnrollments = enrollments.filter(enrollment => enrollment.batch !== null);
-
-    sendSuccessResponse(res, validEnrollments, 'Enrolled batches retrieved');
-  } catch (err) {
-    handleError(err, res, 'Failed to retrieve enrolled batches');
-  }
-};
-
 

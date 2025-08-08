@@ -35,7 +35,6 @@ router.get('/attendance', authenticateStudent, attendanceController.viewStudentA
 // Student Batch Access
 router.get('/batches/available', authenticateStudent, batchController.viewAvailableBatches);
 router.post('/batch/enroll', authenticateStudent, batchEnrollmentController.enrollInBatch);
-router.get('/batch/my-batches', authenticateStudent, batchController.viewMyBatchesAsStudent);
 router.get("/batches/enrolled",authenticateStudent,batchEnrollmentController.getStudentEnrolledBatches)
 router.get('/batches/:id', authenticateStudent, batchController.getMyBatchById);
 
