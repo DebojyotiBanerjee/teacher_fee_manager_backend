@@ -12,6 +12,8 @@ const batchController = require('../controller/batch.controller');
 const courseController = require('../controller/course.controller');
 const attendanceController = require('../controller/attendence.controller');
 const courseApplicationController = require('../controller/courseApplication.controller');
+const batchEnrollmentController= require('../controller/batchEnrollment.controller')
+
 
 // Test route to check if teacher routes are working
 router.get('/test', (req, res) => {
@@ -43,7 +45,7 @@ router.delete('/batch/:id', authenticateTeacher, batchController.deleteBatch);
 router.get('/batch/:id/students', authenticateTeacher, batchController.viewStudentsInBatch);
 
 // Teacher Unenroll Student from Batch
-router.post('/batch/unenroll', authenticateTeacher, batchController.unenrollStudentFromBatch);
+router.post('/batch/unenroll', authenticateTeacher, batchEnrollmentController.unenrollStudentFromBatch);
 
 // Course Management Routes
 router.post('/course', authenticateTeacher, CourseValidator, validator, courseController.createCourse);
