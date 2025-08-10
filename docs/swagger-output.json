@@ -1522,16 +1522,6 @@
         }
       }
     },
-    "/api/user/batch/my-batches": {
-      "get": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
     "/api/user/batches/enrolled": {
       "get": {
         "description": "",
