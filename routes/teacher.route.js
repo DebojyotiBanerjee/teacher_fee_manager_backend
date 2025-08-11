@@ -60,4 +60,6 @@ router.get('/attendance', authenticateTeacher, attendanceController.viewAttendan
 
 router.get('/course-application', authenticateTeacher, courseApplicationController.viewCourseApplication);
 
+router.get('/course-application/:studentId', authenticateTeacher, courseApplicationController.viewCourseApplicationById);
+
 module.exports = router;
