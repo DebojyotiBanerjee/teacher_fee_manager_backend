@@ -24,8 +24,17 @@ exports.enrollInBatch = async (req, res) => {
     // Check if already enrolled in another batch for the same course
     const alreadyEnrolled = await BatchEnrollment.findOne({
       student: studentId,
-      batch: { $ne: batchId }
-    }).populate('batch');
+      batch: { $ne: batchId },
+      isDeleted: { $ne: true }
+    })
+      .populate({
+        path: 'batch',
+        match: { isDeleted: false },
+        populate: { path: 'course', select: '_id' }
+      });
+      console.log('alreadyEnrolled:', alreadyEnrolled);
+
+
     if (alreadyEnrolled && alreadyEnrolled.batch.course.toString() === batch.course._id.toString()) {
       return handleError({ name: 'Duplicate', message: 'Already enrolled in another batch for this course' }, res);
     }
@@ -44,7 +53,7 @@ exports.enrollInBatch = async (req, res) => {
   } catch (err) {
     handleError(err, res, 'Failed to enroll in batch');
   }
-};exports.enrollInBatch = async (req, res) => {
+}; exports.enrollInBatch = async (req, res) => {
   try {
     // Destructure request body for clear testing
     const { batchId } = req.body;
@@ -87,35 +96,35 @@ exports.enrollInBatch = async (req, res) => {
 };
 
 exports.getStudentEnrolledBatches = async (req, res) => {
-    try {
-        const studentId = req.user._id;
+  try {
+    const studentId = req.user._id;
 
-        if (!studentId) {
-            ({ name: 'ValidationError' }, res, "Student Id is required");
-        }
-
-        const enrollments = await BatchEnrollment.find({ student: studentId })
-            .populate({
-                path: "batch",
-                match: { isDeleted: false },
-                select: "batchName days time mode",
-                populate: {
-                    path: "course",
-                    select: "title description"
-                }
-            })
-            .sort({ enrolledAt: -1 });
-
-        const filteredEnrollments = enrollments.filter(
-            (e) => e.batch !== null && e.batch.course !== null
-        );
-
-        sendSuccessResponse(res, {
-            filteredEnrollments 
-        }, "Student's enrolled batches retrieved successfully")
-    } catch (error) {
-        handleError(err, res, "Failed to retrieve enrolled batches")
+    if (!studentId) {
+      ({ name: 'ValidationError' }, res, "Student Id is required");
     }
+
+    const enrollments = await BatchEnrollment.find({ student: studentId })
+      .populate({
+        path: "batch",
+        match: { isDeleted: false },
+        select: "batchName days time mode",
+        populate: {
+          path: "course",
+          select: "title description"
+        }
+      })
+      .sort({ enrolledAt: -1 });
+
+    const filteredEnrollments = enrollments.filter(
+      (e) => e.batch !== null && e.batch.course !== null
+    );
+
+    sendSuccessResponse(res, {
+      filteredEnrollments
+    }, "Student's enrolled batches retrieved successfully")
+  } catch (error) {
+    handleError(err, res, "Failed to retrieve enrolled batches")
+  }
 }
 
 // TEACHER: Unenroll a student from a batch
