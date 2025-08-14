@@ -87,7 +87,7 @@ exports.viewMyBatchesAsTeacher = async (req, res) => {
     const teacherCourseIds = teacherCourses.map(course => course._id);
 
     // Filtering - only show batches for teacher's courses
-    const filter = { 
+    const filter = {
       isDeleted: false,
       course: { $in: teacherCourseIds } // Only batches for teacher's courses
     };
@@ -131,19 +131,22 @@ exports.viewMyBatchesAsTeacher = async (req, res) => {
     const batchesWithStats = await Promise.all(
       batches.map(async (batch) => {
         // Get enrolled students
-        const enrolledStudents = await CourseApplication.find({ course: batch.course })
-          .populate('student', 'fullname email');
+        const enrolledStudents = await BatchEnrollment.find({
+          batch: batch._id,
+        }).populate("student", "fullname email");
 
         // Get attendance stats
-        const totalAttendanceRecords = await Attendance.countDocuments({ course: batch.course });
+        const totalAttendanceRecords = await Attendance.countDocuments({
+          batch: batch._id,
+        });
         const presentRecords = await Attendance.countDocuments({
-          course: batch.course,
-          status: 'present'
+          batch: batch._id,
+          status: "present",
         });
 
         const attendancePercentage = totalAttendanceRecords > 0
-          ? Math.round((presentRecords / totalAttendanceRecords) * 100)
-          : 0;
+            ? Math.round((presentRecords / totalAttendanceRecords) * 100)
+            : 0;
 
         return {
           ...batch.toObject(),
@@ -159,10 +162,10 @@ exports.viewMyBatchesAsTeacher = async (req, res) => {
     );
 
     sendSuccessResponse(res, {
-      batches: batchesWithStats,
-      page,
-      limit,
-      total,
+        batches: batchesWithStats,
+        page,
+        limit,
+        total,
       totalPages: Math.ceil(total / limit)
     }, 'Batches retrieved successfully');
   } catch (err) {
@@ -193,8 +196,9 @@ exports.getBatchById = async (req, res) => {
     }
 
     // Get enrolled students
-    const enrolledStudents = await CourseApplication.find({ course: batch.course })
-      .populate('student', 'fullname email');
+    const enrolledStudents = await BatchEnrollment.find({
+      batch: batch._id,
+    }).populate('student', 'fullname email');``
 
     // Get detailed attendance stats
     const attendanceStats = await Attendance.aggregate([
@@ -220,24 +224,24 @@ exports.getBatchById = async (req, res) => {
 
     const totalAttendance = Object.values(stats).reduce((sum, count) => sum + count, 0);
     const attendancePercentage = totalAttendance > 0
-      ? Math.round((stats.present / totalAttendance) * 100)
-      : 0;
+        ? Math.round((stats.present / totalAttendance) * 100)
+        : 0;
 
     sendSuccessResponse(res, {
-      ...batch.toObject(),
-      enrolledStudents: enrolledStudents.length,
-      attendanceStats: {
-        present: stats.present,
-        absent: stats.absent,
-        late: stats.late,
-        excused: stats.excused,
-        total: totalAttendance,
-        percentage: attendancePercentage,
+        ...batch.toObject(),
+        enrolledStudents: enrolledStudents.length,
+        attendanceStats: {
+          present: stats.present,
+          absent: stats.absent,
+          late: stats.late,
+          excused: stats.excused,
+          total: totalAttendance,
+          percentage: attendancePercentage,
         summary: `${stats.present}/${totalAttendance} students attended (${attendancePercentage}%)`
-      },
+        },
       studentList: enrolledStudents.map(enrollment => ({
-        id: enrollment.student._id,
-        fullname: enrollment.student.fullname,
+          id: enrollment.student._id,
+          fullname: enrollment.student.fullname,
         email: enrollment.student.email
       }))
     }, 'Batch details retrieved successfully');
@@ -408,8 +412,8 @@ exports.viewStudentsInBatch = async (req, res) => {
         const totalClasses = studentAttendance.length;
         const presentClasses = studentAttendance.filter(a => a.status === 'present').length;
         const attendancePercentage = totalClasses > 0
-          ? Math.round((presentClasses / totalClasses) * 100)
-          : 0;
+            ? Math.round((presentClasses / totalClasses) * 100)
+            : 0;
 
         return {
           student: enrollment.student,
@@ -428,15 +432,15 @@ exports.viewStudentsInBatch = async (req, res) => {
     );
 
     sendSuccessResponse(res, {
-      batch: {
-        id: batch._id,
-        batchName: batch.batchName,
+        batch: {
+          id: batch._id,
+          batchName: batch.batchName,
         course: batch.course
-      },
-      students: studentsWithStats,
-      page,
-      limit,
-      total,
+        },
+        students: studentsWithStats,
+        page,
+        limit,
+        total,
       totalPages: Math.ceil(total / limit)
     }, 'Students in batch retrieved successfully');
   } catch (err) {
@@ -520,9 +524,9 @@ exports.viewMyBatchesAsStudent = async (req, res) => {
     const enrollments = await BatchEnrollment.find({ student: studentId })
       .populate({
         path: 'batch',
-        match: { isDeleted: false }, // Only populate non-deleted batches
+      match: { isDeleted: false }, // Only populate non-deleted batches
         populate: { path: 'course', select: 'title' }
-      });
+    });
 
     // Filter out enrollments where batch is null (deleted batches)
     const validEnrollments = enrollments.filter(enrollment => enrollment.batch !== null);
