@@ -12,6 +12,11 @@ const batchController = require('../controller/batch.controller');
 const courseController = require('../controller/course.controller');
 const attendanceController = require('../controller/attendence.controller');
 const courseApplicationController = require('../controller/courseApplication.controller');
+const { feeQRCodeValidator } = require('../validators/fee.validator')
+const feeController = require('../controller/fee.controller')
+const multer = require('multer');
+const upload = multer({ dest: 'qrCode/' });
+
 
 // Test route to check if teacher routes are working
 router.get('/test', (req, res) => {
@@ -57,5 +62,15 @@ router.post('/attendance/mark', authenticateTeacher, Attendance, validator, atte
 router.get('/attendance', authenticateTeacher, attendanceController.viewAttendance);
 
 router.get('/course-application', authenticateTeacher, courseApplicationController.viewCourseApplication);
+
+
+// Payment History for Teacher
+router.get('/payment/history', authenticateTeacher, feeController.getTeacherPaymentHistory);
+
+// Only teachers can create, update, get, delete their QR code
+router.post('/qr-create', authenticateTeacher, upload.single('qrCode'), feeQRCodeValidator, validator, feeController.createQRCode);
+router.get('/qr-get', authenticateTeacher, feeController.getQRCode);
+router.put('/qr-update', authenticateTeacher, upload.single('qrCode'), feeQRCodeValidator, validator, feeController.updateQRCode);
+router.delete('/qr-delete', authenticateTeacher, feeController.deleteQRCode);
 
 module.exports = router;
