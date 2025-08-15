@@ -4,6 +4,8 @@ const detailTeacher = require('./detailTeacher.models.js');
 const detailStudent = require('./detailStudent.model.js');
 const rating = require('./rating.models.js');
 const attendance = require('./attendance.models.js');
+const payment = require('./payment.models');
+const fee = require('./fee.models');
 
 module.exports = {
   user,
@@ -11,5 +13,7 @@ module.exports = {
   detailTeacher,
   detailStudent,
   rating,
-  attendance
+  attendance,
+  payment,
+  fee
 };

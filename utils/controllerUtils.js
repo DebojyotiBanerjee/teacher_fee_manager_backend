@@ -1,3 +1,12 @@
+/**
+ * Check if a teacher already has a QR code
+ * @param {String|ObjectId} teacherId - The teacher's ID
+ * @param {Mongoose.Model} FeeModel - The Fee mongoose model
+ * @returns {Promise<Boolean>} - true if QR exists, false otherwise
+ */
+const teacherHasQRCode = async (teacherId, FeeModel) => {
+  return !!(await FeeModel.findOne({ teacher: teacherId }));
+};
 // Utility functions to eliminate repeated code patterns across controllers
 
 /**
@@ -290,5 +299,6 @@ module.exports = {
   canAccessCourse,
   canStudentViewOrEnroll,
   isOwner,
-  softDelete 
-}; 
+  softDelete,
+  teacherHasQRCode
+};

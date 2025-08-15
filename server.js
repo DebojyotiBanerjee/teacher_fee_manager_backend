@@ -1,3 +1,4 @@
+
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -6,6 +7,8 @@ const connectDB = require('./config/dbConfig');
 const routes = require('./routes/index.routes');
 require('events').EventEmitter.defaultMaxListeners = 15;
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+// Start scheduled cron jobs
+require('./utils/cron');
 
 // Import all models to ensure they are registered
 require('./models/user.models.js');
