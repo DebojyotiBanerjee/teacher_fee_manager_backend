@@ -279,8 +279,8 @@ class ChartService {
             };
 
             // Generate both charts
-            const trendImage = await chartJSNodeCanvas.renderToBuffer(trendConfiguration);
-            const categoryImage = await chartJSNodeCanvas.renderToBuffer(categoryConfiguration);
+            const trendImage = await wideChartCanvas.renderToBuffer(trendConfiguration);
+            const categoryImage = await squareChartCanvas.renderToBuffer(categoryConfiguration);
 
             // Upload both charts to Cloudinary
             const [trendResult, categoryResult] = await Promise.all([
