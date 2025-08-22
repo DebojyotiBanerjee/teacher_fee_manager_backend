@@ -1,3 +1,4 @@
+const { Transaction } = require('mongodb');
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
@@ -16,6 +17,7 @@ const feeSchema = new Schema({
     type: Date,
     default: Date.now
   }
+  
 });
 
 module.exports = mongoose.model('Fee', feeSchema);

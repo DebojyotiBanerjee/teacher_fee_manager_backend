@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
-const paymentSchema = new Schema({
+const offlinePaymentSchema = new Schema({
   student: {
     type: Schema.Types.ObjectId,
     ref: 'User',
@@ -17,13 +17,17 @@ const paymentSchema = new Schema({
     ref: 'Course',
     required: true
   },
-  screenshotUrl: {
-    type: String,
+  paymentDate: {
+    type: Date,
     required: true
   },
   paidAt: {
     type: Date,
     default: Date.now
+  },
+  paymentMethod: {
+    type: String,
+    default: 'cash'
   },
   nextDueDate: {
     type: Date,
@@ -31,28 +35,19 @@ const paymentSchema = new Schema({
   },
   status: {
     type: String,
-    enum: ['paid', 'pending', 'overdue'],
+    enum: ['paid'],
     default: 'paid'
   },
-  paymentMethod: {
-    type: String,
-    default: 'qr_scan'
-  },
-  isRecurring: {
-    type: Boolean,
-    default: true
-  },
-  transactionId: {
-    type: String,
-    required: true
+  notes: {
+    type: String
   }
 }, {
   timestamps: true
 });
 
 // Index for efficient queries
-paymentSchema.index({ student: 1, course: 1 });
-paymentSchema.index({ nextDueDate: 1 });
-paymentSchema.index({ status: 1 });
+offlinePaymentSchema.index({ student: 1, course: 1 });
+offlinePaymentSchema.index({ teacher: 1 });
+offlinePaymentSchema.index({ paymentDate: 1 });
 
-module.exports = mongoose.model('Payment', paymentSchema);
+module.exports = mongoose.model('OfflinePayment', offlinePaymentSchema);

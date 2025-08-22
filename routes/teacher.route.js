@@ -12,10 +12,10 @@ const batchController = require('../controller/batch.controller');
 const courseController = require('../controller/course.controller');
 const attendanceController = require('../controller/attendence.controller');
 const courseApplicationController = require('../controller/courseApplication.controller');
-const { feeQRCodeValidator } = require('../validators/fee.validator')
-const feeController = require('../controller/fee.controller')
-const multer = require('multer');
-const upload = multer({ dest: 'qrCode/' });
+const {feeQRCodeValidator} = require('../validators/fee.validator')
+
+const feeController = require('../controller/fee.controller');
+const { uploadQRCode } = require('../middleware/fileUpload.middleware');
 
 
 // Test route to check if teacher routes are working
@@ -68,9 +68,17 @@ router.get('/course-application', authenticateTeacher, courseApplicationControll
 router.get('/payment/history', authenticateTeacher, feeController.getTeacherPaymentHistory);
 
 // Only teachers can create, update, get, delete their QR code
-router.post('/qr-create', authenticateTeacher, upload.single('qrCode'), feeQRCodeValidator, validator, feeController.createQRCode);
+router.post('/qr-create', authenticateTeacher, uploadQRCode(), feeController.createQRCode);
 router.get('/qr-get', authenticateTeacher, feeController.getQRCode);
-router.put('/qr-update', authenticateTeacher, upload.single('qrCode'), feeQRCodeValidator, validator, feeController.updateQRCode);
+router.put('/qr-update', authenticateTeacher, feeQRCodeValidator, feeController.updateQRCode);
 router.delete('/qr-delete', authenticateTeacher, feeController.deleteQRCode);
+
+// Offline payment management routes
+router.post('/offline-payment', authenticateTeacher, sanitizeInput,validator, feeController.createOfflinePayment);
+
+router.get('/offline-payments', authenticateTeacher, validator,feeController.getOfflinePayments
+);
+
+router.delete('/offline-payment/:paymentId', authenticateTeacher, validator, feeController.deleteOfflinePayment);
 
 module.exports = router;
