@@ -16,6 +16,9 @@ const {feeQRCodeValidator} = require('../validators/fee.validator')
 
 const feeController = require('../controller/fee.controller');
 const { uploadQRCode } = require('../middleware/fileUpload.middleware');
+const { teacherExpenseValidator } = require('../validators/teacherExpense.validator');
+const teacherExpenseController = require('../controller/teacherExpense.controller');
+
 
 
 // Test route to check if teacher routes are working
@@ -80,5 +83,23 @@ router.get('/offline-payments', authenticateTeacher, validator,feeController.get
 );
 
 router.delete('/offline-payment/:paymentId', authenticateTeacher, validator, feeController.deleteOfflinePayment);
+
+// Create expense
+router.post('/expense', authenticateTeacher, teacherExpenseValidator, validator, teacherExpenseController.createExpense);
+
+// Get all expenses with optional filters
+router.get('/expenses', authenticateTeacher, teacherExpenseController.getExpenses);
+
+// Get expense summary
+router.get('/expenses/summary', authenticateTeacher, teacherExpenseController.getExpenseSummary);
+
+// Get specific expense
+router.get('/expense/:expenseId', authenticateTeacher, teacherExpenseController.getExpenseById);
+
+// Update expense
+router.put('/expense/:expenseId', authenticateTeacher, teacherExpenseValidator, validator, teacherExpenseController.updateExpense);
+
+// Delete expense
+router.delete('/expense/:expenseId', authenticateTeacher, teacherExpenseController.deleteExpense);
 
 module.exports = router;
