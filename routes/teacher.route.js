@@ -64,6 +64,7 @@ router.post('/attendance/mark', authenticateTeacher, Attendance, validator, atte
 router.get('/attendance', authenticateTeacher, attendanceController.viewAttendance);
 
 router.get('/course-application', authenticateTeacher, courseApplicationController.viewCourseApplication);
+router.get('/course-application/:studentId', authenticateTeacher, courseApplicationController.viewCourseApplicationById);
 
 
 // Payment History for Teacher
@@ -75,6 +76,5 @@ router.get('/qr-get', authenticateTeacher, feeController.getQRCode);
 router.put('/qr-update', authenticateTeacher, upload.single('qrCode'), feeQRCodeValidator, validator, feeController.updateQRCode);
 router.delete('/qr-delete', authenticateTeacher, feeController.deleteQRCode);
 
-router.get('/course-application/:studentId', authenticateTeacher, courseApplicationController.viewCourseApplicationById);
 
 module.exports = router;

@@ -1145,6 +1145,65 @@
         }
       }
     },
+    "/api/teacher/payment/history": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/teacher/qr-create": {
+      "post": {
+        "description": "",
+        "responses": {
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      }
+    },
+    "/api/teacher/qr-get": {
+      "get": {
+        "description": "",
+        "responses": {
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/teacher/qr-update": {
+      "put": {
+        "description": "",
+        "responses": {
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/teacher/qr-delete": {
+      "delete": {
+        "description": "",
+        "responses": {
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/user/dashboard": {
       "get": {
         "description": "",
@@ -1568,6 +1627,50 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        }
+      }
+    },
+    "/api/user/payment/pay-course": {
+      "post": {
+        "description": "",
+        "responses": {
+          "400": {
+            "description": "Bad Request"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "courseId": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/payment/history": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/user/payment/upcoming": {
+      "get": {
+        "description": "",
+        "responses": {
+          "403": {
+            "description": "Forbidden"
           }
         }
       }
