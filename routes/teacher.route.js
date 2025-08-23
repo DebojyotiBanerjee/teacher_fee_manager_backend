@@ -12,10 +12,14 @@ const batchController = require('../controller/batch.controller');
 const courseController = require('../controller/course.controller');
 const attendanceController = require('../controller/attendence.controller');
 const courseApplicationController = require('../controller/courseApplication.controller');
-const { feeQRCodeValidator } = require('../validators/fee.validator')
-const feeController = require('../controller/fee.controller')
-const multer = require('multer');
-const upload = multer({ dest: 'qrCode/' });
+const teacherStatsController = require('../controller/teacherStats.controller');
+const {feeQRCodeValidator} = require('../validators/fee.validator')
+
+const feeController = require('../controller/fee.controller');
+const { uploadQRCode } = require('../middleware/fileUpload.middleware');
+const { teacherExpenseValidator } = require('../validators/teacherExpense.validator');
+const teacherExpenseController = require('../controller/teacherExpense.controller');
+
 
 const batchEnrollmentController= require('../controller/batchEnrollment.controller')
 
@@ -70,11 +74,39 @@ router.get('/course-application/:studentId', authenticateTeacher, courseApplicat
 // Payment History for Teacher
 router.get('/payment/history', authenticateTeacher, feeController.getTeacherPaymentHistory);
 
+// Get Teacher Statistics with Charts
+router.get('/stats', authenticateTeacher, teacherStatsController.getTeacherStats);
+
 // Only teachers can create, update, get, delete their QR code
-router.post('/qr-create', authenticateTeacher, upload.single('qrCode'), feeQRCodeValidator, validator, feeController.createQRCode);
+router.post('/qr-create', authenticateTeacher, uploadQRCode(), feeController.createQRCode);
 router.get('/qr-get', authenticateTeacher, feeController.getQRCode);
-router.put('/qr-update', authenticateTeacher, upload.single('qrCode'), feeQRCodeValidator, validator, feeController.updateQRCode);
+router.put('/qr-update', authenticateTeacher, feeQRCodeValidator, feeController.updateQRCode);
 router.delete('/qr-delete', authenticateTeacher, feeController.deleteQRCode);
 
+// Offline payment management routes
+router.post('/offline-payment', authenticateTeacher, sanitizeInput,validator, feeController.createOfflinePayment);
+
+router.get('/offline-payments', authenticateTeacher, validator,feeController.getOfflinePayments
+);
+
+router.delete('/offline-payment/:paymentId', authenticateTeacher, validator, feeController.deleteOfflinePayment);
+
+// Create expense
+router.post('/expense', authenticateTeacher, teacherExpenseValidator, validator, teacherExpenseController.createExpense);
+
+// Get all expenses with optional filters
+router.get('/expenses', authenticateTeacher, teacherExpenseController.getExpenses);
+
+// Get expense summary
+router.get('/expenses/summary', authenticateTeacher, teacherExpenseController.getExpenseSummary);
+
+// Get specific expense
+router.get('/expense/:expenseId', authenticateTeacher, teacherExpenseController.getExpenseById);
+
+// Update expense
+router.put('/expense/:expenseId', authenticateTeacher, teacherExpenseValidator, validator, teacherExpenseController.updateExpense);
+
+// Delete expense
+router.delete('/expense/:expenseId', authenticateTeacher, teacherExpenseController.deleteExpense);
 
 module.exports = router;

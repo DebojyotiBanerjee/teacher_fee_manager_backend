@@ -12,9 +12,9 @@ const attendanceController = require('../controller/attendence.controller');
 const batchController = require('../controller/batch.controller');
 const batchEnrollmentController= require('../controller/batchEnrollment.controller');
 const feeController = require('../controller/fee.controller');
-const multer = require('multer');
-const upload = multer({ dest: 'uploads/' });
-const { paymentValidator } = require('../validators/payment.validator');
+const { uploadPaymentScreenshot } = require('../middleware/fileUpload.middleware');
+
+
 
 // Student Dashboard
 router.get('/dashboard', authenticateStudent, detailStudentController.studentDashboard);
@@ -43,7 +43,7 @@ router.get("/batches/enrolled",authenticateStudent,batchEnrollmentController.get
 router.get('/batches/:id', authenticateStudent, batchController.getMyBatchById);
 
 // Student Payment Routes
-router.post('/payment/pay-course', authenticateStudent, upload.single('screenshot'), paymentValidator, validator, feeController.studentPayForCourse);
+router.post('/payment/pay-course', authenticateStudent, uploadPaymentScreenshot(), feeController.studentPayForCourse);
 router.get('/payment/history', authenticateStudent, feeController.getStudentPaymentHistory);
 router.get('/payment/upcoming', authenticateStudent, feeController.getUpcomingPayments);
 
