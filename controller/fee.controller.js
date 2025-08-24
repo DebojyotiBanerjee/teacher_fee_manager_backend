@@ -37,7 +37,7 @@ exports.getStudentPaymentHistory = async (req, res) => {
       paymentObj.amount = payment.course ? payment.course.fee : 0;
       return paymentObj;
     });
-    
+
     sendSuccessResponse(res, paymentsWithFee, 'Payment history retrieved successfully');
   } catch (err) {
     handleError(err, res, 'Failed to retrieve payment history');
@@ -63,7 +63,7 @@ exports.getTeacherPaymentHistory = async (req, res) => {
       paymentObj.amount = payment.course ? payment.course.fee : 0;
       return paymentObj;
     });
-    
+
     // Each payment includes screenshotUrl and course fee
     sendSuccessResponse(res, paymentsWithFee, 'Teacher payment history retrieved successfully');
   } catch (err) {
@@ -147,7 +147,7 @@ exports.studentPayForCourse = async (req, res) => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    
+
     // Check regular payments
     const regularPayment = await Payment.findOne({
       student: studentId,
@@ -167,9 +167,9 @@ exports.studentPayForCourse = async (req, res) => {
     if (regularPayment || offlinePayment) {
       const existingPayment = regularPayment || offlinePayment;
       return handleError(
-        { name: 'ValidationError', message: 'You have already paid for this month. Next payment due: ' + existingPayment.nextDueDate.toISOString().slice(0,10) },
+        { name: 'ValidationError', message: 'You have already paid for this month. Next payment due: ' + existingPayment.nextDueDate.toISOString().slice(0, 10) },
         res,
-        'You have already paid for this month. Next payment due: ' + existingPayment.nextDueDate.toISOString().slice(0,10),
+        'You have already paid for this month. Next payment due: ' + existingPayment.nextDueDate.toISOString().slice(0, 10),
         400
       );
     }
@@ -178,7 +178,7 @@ exports.studentPayForCourse = async (req, res) => {
     let nextDueDate = new Date(now);
     nextDueDate.setDate(nextDueDate.getDate() + 30);
     let payment = await Payment.findOne({ student: studentId, course: courseId });
-    
+
     if (payment) {
       // Delete old screenshot if it exists
       if (payment.cloudinaryPublicId) {
@@ -222,7 +222,7 @@ exports.studentPayForCourse = async (req, res) => {
         duration: populatedPayment.course.duration,
         fee: populatedPayment.course.fee
       }
-    }, 'Payment successful. Next payment due: ' + payment.nextDueDate.toISOString().slice(0,10));
+    }, 'Payment successful. Next payment due: ' + payment.nextDueDate.toISOString().slice(0, 10));
   } catch (err) {
     handleError(err, res, 'Failed to process payment');
   }
@@ -236,7 +236,7 @@ exports.createQRCode = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Access denied: Only teachers can perform this action.' });
     }
     const teacherId = req.user._id;
-    
+
     if (await teacherHasQRCode(teacherId, Fee)) {
       return res.status(409).json({
         success: false,
@@ -283,7 +283,7 @@ exports.getQRCode = async (req, res) => {
         fullname: fee.teacher.fullname,
         email: fee.teacher.email
       }
-      
+
 
     };
     sendSuccessResponse(res, result, 'QR code fetched successfully');
@@ -297,7 +297,7 @@ exports.updateQRCode = async (req, res) => {
   try {
     const teacherId = req.user._id;
     const fee = await Fee.findOne({ teacher: teacherId });
-    
+
     if (!fee) {
       return res.status(404).json({ success: false, message: 'QR code not found' });
     }
@@ -322,7 +322,7 @@ exports.updateQRCode = async (req, res) => {
     fee.qrCodeUrl = uploadResult.url;
     fee.cloudinaryPublicId = uploadResult.public_id;
     fee.qrUploadedAt = new Date();
-    
+
     await fee.save();
 
     sendSuccessResponse(res, fee, 'QR code updated successfully');
@@ -336,7 +336,7 @@ exports.deleteQRCode = async (req, res) => {
   try {
     const teacherId = req.user._id;
     const fee = await Fee.findOne({ teacher: teacherId });
-    
+
     if (!fee) {
       return res.status(404).json({ success: false, message: 'QR code not found' });
     }
@@ -348,7 +348,7 @@ exports.deleteQRCode = async (req, res) => {
 
     // Delete the fee record
     await fee.deleteOne();
-    
+
     sendSuccessResponse(res, null, 'QR code deleted successfully');
   } catch (err) {
     handleError(err, res, 'Failed to delete QR code');
@@ -366,29 +366,29 @@ exports.getUpcomingPayments = async (req, res) => {
         message: 'Access denied: Only students can access this information'
       });
     }
-    
+
     const studentId = req.user._id;
     const now = new Date();
-    
+
     // Get all courses student is enrolled in
     const BatchEnrollment = require('../models/batchEnrollment.models');
     const enrollments = await BatchEnrollment.find({ student: studentId });
     const courseIds = enrollments.map(e => e.course);
-    
+
     // Get courses that haven't ended yet
     const Course = require('../models/course.models');
-    const activeCourses = await Course.find({ 
+    const activeCourses = await Course.find({
       _id: { $in: courseIds },
       isDeleted: { $ne: true }
     });
-    
+
     const upcomingPayments = [];
-    
+
     for (const course of activeCourses) {
       // Check course end date
       const durationStr = course.duration.toLowerCase();
       let courseEndDate = new Date(course.createdAt);
-      
+
       if (durationStr.includes('week')) {
         const weeks = parseInt(durationStr);
         courseEndDate.setDate(courseEndDate.getDate() + (weeks * 7));
@@ -401,28 +401,28 @@ exports.getUpcomingPayments = async (req, res) => {
       } else {
         courseEndDate.setDate(courseEndDate.getDate() + 30);
       }
-      
+
       if (new Date() <= courseEndDate) {
         // Check last payment from both regular and offline payments
         const [lastRegularPayment, lastOfflinePayment] = await Promise.all([
-          Payment.findOne({ 
-            student: studentId, 
-            course: course._id 
+          Payment.findOne({
+            student: studentId,
+            course: course._id
           }).sort({ paidAt: -1 }),
           OfflinePayment.findOne({
             student: studentId,
             course: course._id
           }).sort({ paymentDate: -1 })
         ]);
-        
+
         // Use the most recent payment between regular and offline
         const lastPayment = lastRegularPayment && lastOfflinePayment
           ? (lastRegularPayment.paidAt > lastOfflinePayment.paymentDate ? lastRegularPayment : lastOfflinePayment)
           : (lastRegularPayment || lastOfflinePayment);
-        
+
         let dueDate;
         let status = 'pending';
-        
+
         if (lastPayment) {
           dueDate = new Date(lastPayment.nextDueDate);
           if (dueDate < now) {
@@ -432,7 +432,7 @@ exports.getUpcomingPayments = async (req, res) => {
           // First payment, due immediately
           dueDate = new Date();
         }
-        
+
         upcomingPayments.push({
           course: {
             _id: course._id,
@@ -445,7 +445,7 @@ exports.getUpcomingPayments = async (req, res) => {
         });
       }
     }
-    
+
     sendSuccessResponse(res, upcomingPayments, 'Upcoming payments retrieved successfully');
   } catch (err) {
     handleError(err, res, 'Failed to retrieve upcoming payments');
@@ -456,14 +456,14 @@ exports.getUpcomingPayments = async (req, res) => {
 exports.checkOverduePayments = async (req, res) => {
   try {
     const now = new Date();
-    
+
     // Find all payments that are overdue
     const overduePayments = await Payment.find({
       nextDueDate: { $lt: now },
       status: { $in: ['paid', 'pending'] },
       isRecurring: true
     });
-    
+
     // Update status to overdue
     const updatedPayments = await Payment.updateMany(
       {
@@ -473,21 +473,21 @@ exports.checkOverduePayments = async (req, res) => {
       },
       { status: 'overdue' }
     );
-    
+
     if (req && res) {
       sendSuccessResponse(res, {
         updatedCount: updatedPayments.modifiedCount,
         overduePayments: overduePayments.length
       }, 'Overdue payments checked and updated');
     }
-    
+
     return {
       updatedCount: updatedPayments.modifiedCount,
       overduePayments: overduePayments.length
     };
   } catch (err) {
     if (req && res) {
-  handleError(err, res, 'Failed to check overdue payments');
+      handleError(err, res, 'Failed to check overdue payments');
     }
     console.error('Error checking overdue payments:', err);
     throw err;
@@ -504,7 +504,7 @@ exports.createOfflinePayment = async (req, res) => {
 
     const teacherId = req.user._id;
     const { studentId, courseId, paymentDate } = req.body;
-    
+
     // Validate required fields
     if (!studentId || !courseId || !paymentDate) {
       return handleError({ name: 'ValidationError', message: 'Missing required fields.' }, res, 'All fields are required.', 400);
@@ -521,10 +521,20 @@ exports.createOfflinePayment = async (req, res) => {
     }
 
     // Verify student is enrolled
-    const enrollment = await BatchEnrollment.findOne({ student: studentId, course: courseId });
-    if (!enrollment) {
+    const enrollments = await BatchEnrollment.find({ student: studentId }).populate('batch');
+    let isEnrolled = false;
+
+    for (const enrollment of enrollments) {
+      if (enrollment.batch && enrollment.batch.course && enrollment.batch.course.toString() === courseId.toString()) {
+        isEnrolled = true;
+        break;
+      }
+    } 
+
+    if (!isEnrolled) {
       return handleError({ name: 'Forbidden', message: 'Student is not enrolled in this course.' }, res, 'Student is not enrolled in this course.', 403);
     }
+
 
     // Calculate next due date
     const paymentDateObj = new Date(paymentDate);
@@ -535,7 +545,7 @@ exports.createOfflinePayment = async (req, res) => {
     const existingPayment = await Payment.findOne({
       student: studentId,
       course: courseId,
-      paidAt: { 
+      paidAt: {
         $gte: new Date(paymentDateObj.getFullYear(), paymentDateObj.getMonth(), 1),
         $lt: new Date(paymentDateObj.getFullYear(), paymentDateObj.getMonth() + 1, 1)
       },
@@ -564,7 +574,8 @@ exports.createOfflinePayment = async (req, res) => {
       paidAt: paymentDateObj,
       nextDueDate,
       status: 'paid',
-      paymentMethod: 'cash'
+      paymentMethod: 'cash',
+      amount: course.fee
     });
 
     // Get the populated offline payment with course details
@@ -581,26 +592,26 @@ exports.createOfflinePayment = async (req, res) => {
   }
 };
 
-// Teacher: Get offline payments
+// Teacher: Get offline payments by course
 exports.getOfflinePayments = async (req, res) => {
   try {
     if (!req.user || req.user.role !== 'teacher') {
       return handleError({ name: 'Forbidden', message: 'Access denied: Only teachers can view offline payments.' }, res, 'Access denied: Only teachers can view offline payments.', 403);
     }
-    
+
     const teacherId = req.user._id;
     // Support filtering by date range
     const { startDate, endDate, courseId } = req.query;
-    
+
     let query = { teacher: teacherId };
-    
+
     if (startDate && endDate) {
       query.paymentDate = {
         $gte: new Date(startDate),
         $lte: new Date(endDate)
       };
     }
-    
+
     if (courseId) {
       query.course = courseId;
     }

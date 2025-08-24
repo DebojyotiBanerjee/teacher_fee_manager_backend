@@ -19,7 +19,8 @@ const paymentSchema = new Schema({
   },
   screenshotUrl: {
     type: String,
-    required: true
+    // Not required for offline payments
+    required: false
   },
   paidAt: {
     type: Date,
@@ -36,6 +37,7 @@ const paymentSchema = new Schema({
   },
   paymentMethod: {
     type: String,
+    enum: ['qr_scan', 'cash', 'offline'],
     default: 'qr_scan'
   },
   isRecurring: {
@@ -44,7 +46,8 @@ const paymentSchema = new Schema({
   },
   transactionId: {
     type: String,
-    required: true
+    // Not required for offline payments
+    required: false
   }
 }, {
   timestamps: true

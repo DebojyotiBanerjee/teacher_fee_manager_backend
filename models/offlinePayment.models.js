@@ -17,6 +17,10 @@ const offlinePaymentSchema = new Schema({
     ref: 'Course',
     required: true
   },
+  batch: {
+    type: Schema.Types.ObjectId,
+    ref: 'Batch'
+  },
   paymentDate: {
     type: Date,
     required: true
@@ -40,12 +44,16 @@ const offlinePaymentSchema = new Schema({
   },
   notes: {
     type: String
+  },
+  amount: {
+    type: Number,
+    required: true
   }
 }, {
   timestamps: true
 });
 
-// Index for efficient queries
+// Indexes
 offlinePaymentSchema.index({ student: 1, course: 1 });
 offlinePaymentSchema.index({ teacher: 1 });
 offlinePaymentSchema.index({ paymentDate: 1 });
