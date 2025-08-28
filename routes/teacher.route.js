@@ -15,7 +15,6 @@ const courseApplicationController = require('../controller/courseApplication.con
 const teacherStatsController = require('../controller/teacherStats.controller');
 const batchEnrollmentController= require('../controller/batchEnrollment.controller')
 
-const teacherStatsController = require('../controller/teacherStats.controller');
 const {feeQRCodeValidator} = require('../validators/fee.validator')
 
 const feeController = require('../controller/fee.controller');
@@ -23,8 +22,6 @@ const { uploadQRCode } = require('../middleware/fileUpload.middleware');
 const { teacherExpenseValidator } = require('../validators/teacherExpense.validator');
 const teacherExpenseController = require('../controller/teacherExpense.controller');
 
-
-const batchEnrollmentController= require('../controller/batchEnrollment.controller')
 
 
 // Test route to check if teacher routes are working
