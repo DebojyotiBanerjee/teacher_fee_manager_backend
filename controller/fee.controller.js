@@ -104,13 +104,7 @@ exports.studentPayForCourse = async (req, res) => {
       if (enrollment.course && enrollment.course.toString() === courseId.toString()) {
         isEnrolled = true;
         break;
-      } else if (enrollment.batch) {
-        const batch = await enrollment.populate('batch');
-        if (batch && batch.batch && batch.batch.course && batch.batch.course.toString() === courseId.toString()) {
-          isEnrolled = true;
-          break;
-        }
-      }
+      } 
     }
     if (!isEnrolled) {
       return handleError({ name: 'Forbidden', message: 'You are not enrolled in this course.' }, res, 'You are not enrolled in this course.', 403);

@@ -53,46 +53,6 @@ exports.enrollInBatch = async (req, res) => {
   } catch (err) {
     handleError(err, res, 'Failed to enroll in batch');
   }
-}; exports.enrollInBatch = async (req, res) => {
-  try {
-    // Destructure request body for clear testing
-    const { batchId } = req.body;
-    const studentId = req.user._id;
-
-    if (!batchId) {
-      return handleError({ name: 'ValidationError' }, res, 'Batch ID is required');
-    }
-    const batch = await Batch.findOne({ _id: batchId, isDeleted: false }).populate('course');
-    if (!batch) {
-      return handleError({ name: 'NotFound' }, res, 'Batch not found');
-    }
-    // Check if batch is full
-    if (batch.currentStrength >= batch.maxStrength) {
-      return handleError({ name: 'Forbidden' }, res, 'Batch is full');
-    }
-    // Check if already enrolled in another batch for the same course
-    const alreadyEnrolled = await BatchEnrollment.findOne({
-      student: studentId,
-      batch: { $ne: batchId }
-    }).populate('batch');
-    if (alreadyEnrolled && alreadyEnrolled.batch.course.toString() === batch.course._id.toString()) {
-      return handleError({ name: 'Duplicate', message: 'Already enrolled in another batch for this course' }, res);
-    }
-    // Check if already enrolled in a batch with the same timing (across all courses)
-    const sameTimeBatch = await BatchEnrollment.findOne({ student: studentId })
-      .populate('batch');
-    if (sameTimeBatch && sameTimeBatch.batch.time === batch.time) {
-      return handleError({ name: 'Duplicate' }, res, 'Already enrolled in a batch with the same timing');
-    }
-    // Enroll
-    await BatchEnrollment.create({ batch: batchId, student: studentId });
-    // Always recalculate currentStrength
-    const count = await BatchEnrollment.countDocuments({ batch: batchId });
-    await Batch.findByIdAndUpdate(batchId, { currentStrength: count });
-    sendSuccessResponse(res, { batchId, currentStrength: count, maxStrength: batch.maxStrength }, 'Enrolled in batch successfully', 201);
-  } catch (err) {
-    handleError(err, res, 'Failed to enroll in batch');
-  }
 };
 
 exports.getStudentEnrolledBatches = async (req, res) => {
