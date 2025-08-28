@@ -19,9 +19,15 @@ const teacherExpenseValidator = [
         .withMessage('Category is required')
         .isIn(['UTILITIES', 'EQUIPMENT', 'MATERIALS', 'SOFTWARE', 'OTHER'])
         .withMessage('Invalid category'),
+
+    body('status')
+        .notEmpty()
+        .withMessage('Status is required')
+        .isIn(['PENDING', 'APPROVED', 'REJECTED'])
+        .withMessage('Invalid status'),
     
     body('date')
-        .optional()
+        .notEmpty()
         .isISO8601()
         .withMessage('Invalid date format'),
     

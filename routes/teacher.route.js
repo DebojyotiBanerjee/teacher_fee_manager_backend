@@ -13,6 +13,9 @@ const courseController = require('../controller/course.controller');
 const attendanceController = require('../controller/attendence.controller');
 const courseApplicationController = require('../controller/courseApplication.controller');
 const teacherStatsController = require('../controller/teacherStats.controller');
+const batchEnrollmentController= require('../controller/batchEnrollment.controller')
+
+const teacherStatsController = require('../controller/teacherStats.controller');
 const {feeQRCodeValidator} = require('../validators/fee.validator')
 
 const feeController = require('../controller/fee.controller');
@@ -68,7 +71,9 @@ router.post('/attendance/mark', authenticateTeacher, Attendance, validator, atte
 router.get('/attendance', authenticateTeacher, attendanceController.viewAttendance);
 
 router.get('/course-application', authenticateTeacher, courseApplicationController.viewCourseApplication);
+
 router.get('/course-application/:studentId', authenticateTeacher, courseApplicationController.viewCourseApplicationById);
+
 
 
 // Payment History for Teacher

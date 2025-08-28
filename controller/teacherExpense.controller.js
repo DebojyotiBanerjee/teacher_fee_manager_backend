@@ -6,7 +6,7 @@ const { handleError, sendSuccessResponse } = require('../utils/controllerUtils')
 exports.createExpense = async (req, res) => {
     try {
         const teacherId = req.user._id;
-        const { amount, description, category, date, notes } = req.fields || req.body;
+        const { amount, description, category,status, date, notes } = req.body;
 
         let receiptData = {};
         if (req.files && req.files.receipt) {
@@ -19,11 +19,13 @@ exports.createExpense = async (req, res) => {
             };
         }
 
-        const expense = await TeacherExpense.create({
-            teacher: teacherId,
+        const expense = await TeacherExpense.populate('teacher','fullname email')
+        .create({
+            teacher: {fullname: teacher.fullname},
             amount,
             description,
             category,
+            status,
             date: date || new Date(),
             notes,
             receipt: receiptData
@@ -58,11 +60,21 @@ exports.getExpenses = async (req, res) => {
 
         const expenses = await TeacherExpense.find(query)
             .sort({ date: -1 });
+        const expensesWithTeacher = await Promise.all(expenses.map(async expense => {
+            const teacher = await Teacher.findById(expense.teacher);
+            return {
+                ...expense.toObject(),
+                teacher: {
+                    fullname: teacher.fullname,
+                    email: teacher.email
+                }
+            };
+        }));
 
         // Calculate total amount
         const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 
-        sendSuccessResponse(res, { expenses, total }, 'Expenses retrieved successfully');
+        sendSuccessResponse(res, { expensesWithTeacher, expenses, total }, 'Expenses retrieved successfully');
     } catch (err) {
         handleError(err, res, 'Failed to retrieve expenses');
     }
@@ -97,7 +109,7 @@ exports.updateExpense = async (req, res) => {
     try {
         const teacherId = req.user._id;
         const { expenseId } = req.params;
-        const { amount, description, category, date, notes } = req.fields || req.body;
+        const { amount, description, category,status, date, notes } = req.fields || req.body;
 
         const expense = await TeacherExpense.findOne({
             _id: expenseId,
@@ -144,6 +156,7 @@ exports.updateExpense = async (req, res) => {
                 category,
                 date: date || expense.date,
                 notes,
+                status,
                 receipt: receiptData
             },
             { new: true }
