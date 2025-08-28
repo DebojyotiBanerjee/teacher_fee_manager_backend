@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const teacherExpenseSchema = new mongoose.Schema({
     teacher: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'DetailTeacher',
+        ref: 'User',
         required: true
     },
     amount: {
@@ -30,7 +30,8 @@ const teacherExpenseSchema = new mongoose.Schema({
         type: String,
         enum: ['PENDING', 'APPROVED', 'REJECTED'],
         default: 'PENDING',
-        uppercase: true
+        uppercase: true,
+        required: true
     },
     notes: {
         type: String,

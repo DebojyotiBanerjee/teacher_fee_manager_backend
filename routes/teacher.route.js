@@ -13,6 +13,8 @@ const courseController = require('../controller/course.controller');
 const attendanceController = require('../controller/attendence.controller');
 const courseApplicationController = require('../controller/courseApplication.controller');
 const teacherStatsController = require('../controller/teacherStats.controller');
+const batchEnrollmentController= require('../controller/batchEnrollment.controller')
+
 const {feeQRCodeValidator} = require('../validators/fee.validator')
 
 const feeController = require('../controller/fee.controller');
@@ -20,8 +22,6 @@ const { uploadQRCode } = require('../middleware/fileUpload.middleware');
 const { teacherExpenseValidator } = require('../validators/teacherExpense.validator');
 const teacherExpenseController = require('../controller/teacherExpense.controller');
 
-
-const batchEnrollmentController= require('../controller/batchEnrollment.controller')
 
 
 // Test route to check if teacher routes are working
@@ -68,7 +68,9 @@ router.post('/attendance/mark', authenticateTeacher, Attendance, validator, atte
 router.get('/attendance', authenticateTeacher, attendanceController.viewAttendance);
 
 router.get('/course-application', authenticateTeacher, courseApplicationController.viewCourseApplication);
+
 router.get('/course-application/:studentId', authenticateTeacher, courseApplicationController.viewCourseApplicationById);
+
 
 
 // Payment History for Teacher
@@ -98,10 +100,10 @@ router.delete('/offline-payment/:paymentId', authenticateTeacher, validator, fee
 router.post('/expense', authenticateTeacher, teacherExpenseValidator, validator, teacherExpenseController.createExpense);
 
 // Get all expenses with optional filters
-router.get('/expenses', authenticateTeacher, teacherExpenseController.getExpenses);
+router.get('/expense', authenticateTeacher, teacherExpenseController.getExpenses);
 
 // Get expense summary
-router.get('/expenses/summary', authenticateTeacher, teacherExpenseController.getExpenseSummary);
+router.get('/expense/summary', authenticateTeacher, teacherExpenseController.getExpenseSummary);
 
 // Get specific expense
 router.get('/expense/:expenseId', authenticateTeacher, teacherExpenseController.getExpenseById);
