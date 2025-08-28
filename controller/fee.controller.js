@@ -75,47 +75,43 @@ exports.getTeacherPaymentHistory = async (req, res) => {
 
 
 // Student: Pay for a course (monthly, with screenshot upload and transactionId)
-exports.studentPayForCourse = async (req, res) => {
+exports.studentPayForBatch = async (req, res) => {
   try {
     // Ensure student role
-    console.log("req.fields:", req.fields);
-    console.log("req.files:", req.files);
-
     if (!req.user || req.user.role !== 'student') {
-      return handleError({ name: 'Forbidden', message: 'Access denied: Only students can perform this action.' }, res, 'Access denied: Only students can perform this action.', 403);
+      return handleError(
+        { name: 'Forbidden', message: 'Access denied: Only students can perform this action.' },
+        res,
+        'Access denied: Only students can perform this action.',
+        403
+      );
     }
+
     const studentId = req.user._id;
-    // Get data from formidable fields
-    // Always use the first value if it's an array, else the value itself
+
+    // Get data from formidable fields, handle arrays gracefully
     const courseId = Array.isArray(req.fields.courseId) ? req.fields.courseId[0] : req.fields.courseId;
     const batchId = Array.isArray(req.fields.batchId) ? req.fields.batchId[0] : req.fields.batchId;
     const transactionId = Array.isArray(req.fields.transactionId) ? req.fields.transactionId[0] : req.fields.transactionId;
 
+    // Validate IDs
     if (!mongoose.Types.ObjectId.isValid(courseId)) {
       return handleError({ name: 'ValidationError', message: 'Invalid course ID.' }, res, 'Invalid course ID.', 400);
+    }
+    if (!mongoose.Types.ObjectId.isValid(batchId)) {
+      return handleError({ name: 'ValidationError', message: 'Invalid batch ID.' }, res, 'Invalid batch ID.', 400);
     }
     if (!transactionId || typeof transactionId !== 'string' || !transactionId.trim()) {
       return handleError({ name: 'ValidationError', message: 'Transaction ID is required.' }, res, 'Transaction ID is required.', 400);
     }
-    // Check enrollment (robust: check all enrollments for this student)
-    const enrollments = await BatchEnrollment.find({ student: studentId });
-    let isEnrolled = false;
-    for (const enrollment of enrollments) {
-      if (enrollment.course && enrollment.course.toString() === courseId.toString()) {
-        isEnrolled = true;
-        break;
-      } else if (enrollment.batch) {
-        const batch = await enrollment.populate('batch');
-        if (batch && batch.batch && batch.batch.course && batch.batch.course.toString() === courseId.toString()) {
-          isEnrolled = true;
-          break;
-        }
-      }
+
+    // Check enrollment: student must be enrolled in the batch
+    const enrollment = await BatchEnrollment.findOne({ student: studentId, batch: batchId });
+    if (!enrollment) {
+      return handleError({ name: 'Forbidden', message: 'You are not enrolled in this batch.' }, res, 'You are not enrolled in this batch.', 403);
     }
-    if (!isEnrolled) {
-      return handleError({ name: 'Forbidden', message: 'You are not enrolled in this course.' }, res, 'You are not enrolled in this course.', 403);
-    }
-    // Get course and teacher
+
+    // Fetch course and batch details
     const course = await Course.findById(courseId);
     if (!course || course.isDeleted) {
       return handleError({ name: 'NotFound', message: 'Course not found or deleted.' }, res, 'Course not found or deleted.', 404);
@@ -126,12 +122,12 @@ exports.studentPayForCourse = async (req, res) => {
       return handleError({ name: 'NotFound', message: 'Batch not found or deleted.' }, res, 'Batch not found or deleted.', 404);
     }
 
-    // Calculate course end date
+    // Calculate course end date and validate if course ended
     const durationStr = course.duration ? course.duration.toLowerCase() : '';
     let courseEndDate = new Date(course.createdAt);
     if (durationStr.includes('week')) {
       const weeks = parseInt(durationStr);
-      courseEndDate.setDate(courseEndDate.getDate() + (weeks * 7));
+      courseEndDate.setDate(courseEndDate.getDate() + weeks * 7);
     } else if (durationStr.includes('month')) {
       const months = parseInt(durationStr);
       courseEndDate.setMonth(courseEndDate.getMonth() + months);
@@ -144,37 +140,39 @@ exports.studentPayForCourse = async (req, res) => {
     if (new Date() > courseEndDate) {
       return handleError({ name: 'ValidationError', message: 'Course has already ended.' }, res, 'Course has already ended.', 400);
     }
-    // Get teacher's QR
+
+    // Get teacher's QR (fee) for payment reference
     const fee = await Fee.findOne({ teacher: course.teacher });
     if (!fee) {
       return handleError({ name: 'NotFound', message: 'Teacher QR code not found.' }, res, 'Teacher QR code not found.', 404);
     }
-    // Get the uploaded screenshot
+
+    // Validate uploaded payment screenshot
     if (!req.files || !req.files.screenshot) {
       return handleError({ name: 'ValidationError', message: 'Payment screenshot is required.' }, res, 'Payment screenshot is required.', 400);
     }
 
     const screenshotFile = req.files.screenshot;
-
-    // Upload screenshot to Cloudinary using our service
+    // Upload payment screenshot to Cloudinary
     const uploadResult = await CloudinaryService.uploadPaymentScreenshot(screenshotFile);
-    // Check both regular and offline payments for the current month
+
+    // Define timespan for payments within current month
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    // Check regular payments
+    // Check if payment already made for batch this month (regular)
     const regularPayment = await Payment.findOne({
       student: studentId,
-      course: courseId,
+      batch: batchId,
       paidAt: { $gte: startOfMonth, $lte: endOfMonth },
       status: 'paid'
     });
 
-    // Check offline payments
+    // Check offline payments for batch this month
     const offlinePayment = await OfflinePayment.findOne({
       student: studentId,
-      course: courseId,
+      batch: batchId,
       paymentDate: { $gte: startOfMonth, $lte: endOfMonth },
       status: 'paid'
     });
@@ -182,20 +180,23 @@ exports.studentPayForCourse = async (req, res) => {
     if (regularPayment || offlinePayment) {
       const existingPayment = regularPayment || offlinePayment;
       return handleError(
-        { name: 'ValidationError', message: 'You have already paid for this month. Next payment due: ' + existingPayment.nextDueDate.toISOString().slice(0, 10) },
+        {
+          name: 'ValidationError',
+          message: 'You have already paid for this month. Next payment due: ' + existingPayment.nextDueDate.toISOString().slice(0, 10)
+        },
         res,
         'You have already paid for this month. Next payment due: ' + existingPayment.nextDueDate.toISOString().slice(0, 10),
         400
       );
     }
 
-    // If no payment exists for this month, create a new payment record
+    // Create or update payment record for this batch and student
     let nextDueDate = new Date(now);
     nextDueDate.setDate(nextDueDate.getDate() + 30);
-    let payment = await Payment.findOne({ student: studentId, course: courseId });
+
+    let payment = await Payment.findOne({ student: studentId, batch: batchId });
 
     if (payment) {
-      // Delete old screenshot if it exists
       if (payment.cloudinaryPublicId) {
         await CloudinaryService.deleteFile(payment.cloudinaryPublicId);
       }
@@ -221,10 +222,11 @@ exports.studentPayForCourse = async (req, res) => {
         transactionId
       });
     }
-    // Get the populated payment with course details
+
+    // Populate payment with course and batch for response
     const populatedPayment = await Payment.findById(payment._id)
       .populate('course', 'title duration fee')
-      .populate('batch', 'batchName')
+      .populate('batch', 'batchName');
 
     sendSuccessResponse(res, {
       paymentId: payment._id,
@@ -243,11 +245,11 @@ exports.studentPayForCourse = async (req, res) => {
         batchName: populatedPayment.batch.batchName
       }
     }, 'Payment successful. Next payment due: ' + payment.nextDueDate.toISOString().slice(0, 10));
+
   } catch (err) {
     handleError(err, res, 'Failed to process payment');
   }
-};
-
+}
 
 // Teacher: Create QR code (only once per teacher)
 exports.createQRCode = async (req, res) => {
