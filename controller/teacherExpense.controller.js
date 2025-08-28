@@ -6,32 +6,22 @@ const { handleError, sendSuccessResponse } = require('../utils/controllerUtils')
 exports.createExpense = async (req, res) => {
     try {
         const teacherId = req.user._id;
-        const { amount, description, category,status, date, notes } = req.body;
+        const { amount, description, category, status, date, notes } = req.body;
 
-        let receiptData = {};
-        if (req.files && req.files.receipt) {
-            const uploadResult = await CloudinaryService.uploadFile(req.files.receipt, {
-                folder: 'expense_receipts'
-            });
-            receiptData = {
-                url: uploadResult.url,
-                cloudinaryPublicId: uploadResult.public_id
-            };
-        }
-
-        const expense = await TeacherExpense.populate('teacher','fullname email')
-        .create({
-            teacher: {fullname: teacher.fullname},
+        const expense = await TeacherExpense.create({
+            teacher: teacherId,
             amount,
             description,
             category,
             status,
             date: date || new Date(),
-            notes,
-            receipt: receiptData
+            notes
         });
 
-        sendSuccessResponse(res, expense, 'Expense created successfully', 201);
+        const populatedExpense = await TeacherExpense.findById(expense._id)
+            .populate('teacher', 'fullname email');
+
+        sendSuccessResponse(res, populatedExpense, 'Expense created successfully', 201);
     } catch (err) {
         handleError(err, res, 'Failed to create expense');
     }
@@ -59,22 +49,13 @@ exports.getExpenses = async (req, res) => {
         if (status) query.status = status.toUpperCase();
 
         const expenses = await TeacherExpense.find(query)
+            .populate('teacher', 'fullname email')
             .sort({ date: -1 });
-        const expensesWithTeacher = await Promise.all(expenses.map(async expense => {
-            const teacher = await Teacher.findById(expense.teacher);
-            return {
-                ...expense.toObject(),
-                teacher: {
-                    fullname: teacher.fullname,
-                    email: teacher.email
-                }
-            };
-        }));
 
         // Calculate total amount
         const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 
-        sendSuccessResponse(res, { expensesWithTeacher, expenses, total }, 'Expenses retrieved successfully');
+        sendSuccessResponse(res, { expenses, total }, 'Expenses retrieved successfully');
     } catch (err) {
         handleError(err, res, 'Failed to retrieve expenses');
     }
