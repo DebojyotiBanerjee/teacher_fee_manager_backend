@@ -97,10 +97,10 @@ router.delete('/offline-payment/:paymentId', authenticateTeacher, validator, fee
 router.post('/expense', authenticateTeacher, teacherExpenseValidator, validator, teacherExpenseController.createExpense);
 
 // Get all expenses with optional filters
-router.get('/expenses', authenticateTeacher, teacherExpenseController.getExpenses);
+router.get('/expense', authenticateTeacher, teacherExpenseController.getExpenses);
 
 // Get expense summary
-router.get('/expenses/summary', authenticateTeacher, teacherExpenseController.getExpenseSummary);
+router.get('/expense/summary', authenticateTeacher, teacherExpenseController.getExpenseSummary);
 
 // Get specific expense
 router.get('/expense/:expenseId', authenticateTeacher, teacherExpenseController.getExpenseById);
