@@ -12,6 +12,7 @@ const batchController = require('../controller/batch.controller');
 const courseController = require('../controller/course.controller');
 const attendanceController = require('../controller/attendence.controller');
 const courseApplicationController = require('../controller/courseApplication.controller');
+const teacherStatsController = require('../controller/teacherStats.controller');
 const batchEnrollmentController= require('../controller/batchEnrollment.controller')
 
 const {feeQRCodeValidator} = require('../validators/fee.validator')
@@ -73,6 +74,9 @@ router.get('/course-application/:studentId', authenticateTeacher, courseApplicat
 
 // Payment History for Teacher
 router.get('/payment/history', authenticateTeacher, feeController.getTeacherPaymentHistory);
+
+// Get Teacher Statistics with Charts
+router.get('/stats', authenticateTeacher, teacherStatsController.getTeacherStats);
 
 // Only teachers can create, update, get, delete their QR code
 router.post('/qr-create', authenticateTeacher, uploadQRCode(), feeController.createQRCode);
