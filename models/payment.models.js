@@ -17,6 +17,10 @@ const paymentSchema = new Schema({
     ref: 'Course',
     required: true
   },
+  batch: {
+    type: Schema.Types.ObjectId,
+    ref: 'Batch',
+  },
   screenshotUrl: {
     type: String,
     // Not required for offline payments
