@@ -85,9 +85,12 @@ router.delete('/qr-delete', authenticateTeacher, feeController.deleteQRCode);
 
 // Offline payment management routes
 router.post('/offline-payment', authenticateTeacher, sanitizeInput,validator, feeController.createOfflinePayment);
-
+// get all the offline payments
 router.get('/offline-payments', authenticateTeacher, validator,feeController.getOfflinePayments
 );
+
+//get offline payments of a particular course
+router.get('/offline-payments/:courseId', authenticateTeacher, validator, feeController.getOfflinePaymentsByCourseId)
 
 router.delete('/offline-payment/:paymentId', authenticateTeacher, validator, feeController.deleteOfflinePayment);
 

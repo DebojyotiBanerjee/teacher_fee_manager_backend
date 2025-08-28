@@ -1256,6 +1256,12 @@
                   "courseId": {
                     "example": "any"
                   },
+                  "amount": {
+                    "example": "any"
+                  },
+                  "batchId": {
+                    "example": "any"
+                  },
                   "paymentDate": {
                     "example": "any"
                   }
@@ -1270,6 +1276,40 @@
       "get": {
         "description": "",
         "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/teacher/offline-payments/{courseId}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "startDate",
             "in": "query",

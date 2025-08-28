@@ -1,4 +1,5 @@
 const Course = require('../models/course.models');
+const Batch = require('../models/batch.models');
 const BatchEnrollment = require('../models/batchEnrollment.models');
 const Payment = require('../models/payment.models');
 const Fee = require('../models/fee.models');
@@ -6,6 +7,7 @@ const OfflinePayment = require('../models/offlinePayment.models');
 const mongoose = require('mongoose');
 const { teacherHasQRCode, handleError, sendSuccessResponse } = require('../utils/controllerUtils');
 const CloudinaryService = require('../utils/cloudinaryService');
+
 
 
 const ensureTeacherRole = (req, res) => {
@@ -76,12 +78,19 @@ exports.getTeacherPaymentHistory = async (req, res) => {
 exports.studentPayForCourse = async (req, res) => {
   try {
     // Ensure student role
+    console.log("req.fields:", req.fields);
+    console.log("req.files:", req.files);
+
     if (!req.user || req.user.role !== 'student') {
       return handleError({ name: 'Forbidden', message: 'Access denied: Only students can perform this action.' }, res, 'Access denied: Only students can perform this action.', 403);
     }
     const studentId = req.user._id;
     // Get data from formidable fields
-    const { courseId, transactionId } = req.fields;
+    // Always use the first value if it's an array, else the value itself
+    const courseId = Array.isArray(req.fields.courseId) ? req.fields.courseId[0] : req.fields.courseId;
+    const batchId = Array.isArray(req.fields.batchId) ? req.fields.batchId[0] : req.fields.batchId;
+    const transactionId = Array.isArray(req.fields.transactionId) ? req.fields.transactionId[0] : req.fields.transactionId;
+
     if (!mongoose.Types.ObjectId.isValid(courseId)) {
       return handleError({ name: 'ValidationError', message: 'Invalid course ID.' }, res, 'Invalid course ID.', 400);
     }
@@ -111,6 +120,12 @@ exports.studentPayForCourse = async (req, res) => {
     if (!course || course.isDeleted) {
       return handleError({ name: 'NotFound', message: 'Course not found or deleted.' }, res, 'Course not found or deleted.', 404);
     }
+
+    const batch = await Batch.findById(batchId);
+    if (!batch || batch.isDeleted) {
+      return handleError({ name: 'NotFound', message: 'Batch not found or deleted.' }, res, 'Batch not found or deleted.', 404);
+    }
+
     // Calculate course end date
     const durationStr = course.duration ? course.duration.toLowerCase() : '';
     let courseEndDate = new Date(course.createdAt);
@@ -196,6 +211,7 @@ exports.studentPayForCourse = async (req, res) => {
       payment = await Payment.create({
         student: studentId,
         course: courseId,
+        batch: batchId,
         teacher: course.teacher,
         screenshotUrl: uploadResult.url,
         cloudinaryPublicId: uploadResult.public_id,
@@ -207,7 +223,8 @@ exports.studentPayForCourse = async (req, res) => {
     }
     // Get the populated payment with course details
     const populatedPayment = await Payment.findById(payment._id)
-      .populate('course', 'title duration fee');
+      .populate('course', 'title duration fee')
+      .populate('batch', 'batchName')
 
     sendSuccessResponse(res, {
       paymentId: payment._id,
@@ -221,6 +238,9 @@ exports.studentPayForCourse = async (req, res) => {
         title: populatedPayment.course.title,
         duration: populatedPayment.course.duration,
         fee: populatedPayment.course.fee
+      },
+      batch: {
+        batchName: populatedPayment.batch.batchName
       }
     }, 'Payment successful. Next payment due: ' + payment.nextDueDate.toISOString().slice(0, 10));
   } catch (err) {
@@ -503,21 +523,26 @@ exports.createOfflinePayment = async (req, res) => {
     }
 
     const teacherId = req.user._id;
-    const { studentId, courseId, paymentDate } = req.body;
+    const { studentId, courseId, amount,batchId, paymentDate } = req.body;
 
     // Validate required fields
     if (!studentId || !courseId || !paymentDate) {
       return handleError({ name: 'ValidationError', message: 'Missing required fields.' }, res, 'All fields are required.', 400);
     }
 
-    if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(courseId)) {
-      return handleError({ name: 'ValidationError', message: 'Invalid student or course ID.' }, res, 'Invalid IDs provided.', 400);
+    if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(batchId)) {
+      return handleError({ name: 'ValidationError', message: 'Invalid student or course ID or batch Id' }, res, 'Invalid IDs provided.', 400);
     }
 
     // Verify course belongs to teacher
     const course = await Course.findOne({ _id: courseId, teacher: teacherId, isDeleted: false });
     if (!course) {
       return handleError({ name: 'NotFound', message: 'Course not found or not authorized.' }, res, 'Course not found or not authorized.', 404);
+    }
+
+    const batch = await Batch.findOne({_id: batchId, isDeleted: false});
+    if(!batch){
+      return handleError({ name: 'NotFound', message: 'Batch not found or not authorized.' }, res, 'Batch not found or not authorized.', 404);
     }
 
     // Verify student is enrolled
@@ -529,7 +554,7 @@ exports.createOfflinePayment = async (req, res) => {
         isEnrolled = true;
         break;
       }
-    } 
+    }
 
     if (!isEnrolled) {
       return handleError({ name: 'Forbidden', message: 'Student is not enrolled in this course.' }, res, 'Student is not enrolled in this course.', 403);
@@ -561,8 +586,10 @@ exports.createOfflinePayment = async (req, res) => {
       student: studentId,
       teacher: teacherId,
       course: courseId,
+      batch: batchId,
       paymentDate: paymentDateObj,
       nextDueDate,
+      amount: amount,
       notes: req.body.notes
     });
 
@@ -571,6 +598,7 @@ exports.createOfflinePayment = async (req, res) => {
       student: studentId,
       teacher: teacherId,
       course: courseId,
+      batch:batchId,
       paidAt: paymentDateObj,
       nextDueDate,
       status: 'paid',
@@ -581,6 +609,7 @@ exports.createOfflinePayment = async (req, res) => {
     // Get the populated offline payment with course details
     const populatedPayment = await OfflinePayment.findById(offlinePayment._id)
       .populate('course', 'title duration fee')
+      .populate('batch', 'batchName')
       .populate('student', 'fullname email');
 
     const responseData = populatedPayment.toObject();
@@ -592,37 +621,35 @@ exports.createOfflinePayment = async (req, res) => {
   }
 };
 
-// Teacher: Get offline payments by course
-exports.getOfflinePayments = async (req, res) => {
+// Teacher: Get offline payments by courseId (renamed)
+exports.getOfflinePaymentsByCourseId = async (req, res) => {
   try {
     if (!req.user || req.user.role !== 'teacher') {
       return handleError({ name: 'Forbidden', message: 'Access denied: Only teachers can view offline payments.' }, res, 'Access denied: Only teachers can view offline payments.', 403);
     }
 
     const teacherId = req.user._id;
-    // Support filtering by date range
     const { startDate, endDate, courseId } = req.query;
 
-    let query = { teacher: teacherId };
+    if (!courseId) {
+      return handleError({ name: 'ValidationError', message: 'courseId query parameter is required.' }, res, 'courseId query parameter is required.', 400);
+    }
+
+    let query = { teacher: teacherId, course: courseId };
 
     if (startDate && endDate) {
       query.paymentDate = {
         $gte: new Date(startDate),
-        $lte: new Date(endDate)
+        $lte: new Date(endDate),
       };
-    }
-
-    if (courseId) {
-      query.course = courseId;
     }
 
     const payments = await OfflinePayment.find(query)
       .populate('student', 'fullname email')
-      .populate('course', 'title duration fee') // Added fee field
+      .populate('course', 'title duration fee')
       .populate('batch', 'batchName')
       .sort({ paymentDate: -1 });
 
-    // Add fee information to each payment
     const paymentsWithFee = payments.map(payment => {
       const paymentObj = payment.toObject();
       paymentObj.amount = payment.course ? payment.course.fee : 0;
@@ -634,6 +661,44 @@ exports.getOfflinePayments = async (req, res) => {
     handleError(err, res, 'Failed to retrieve offline payments');
   }
 };
+
+// Teacher: Get all offline payments (new method)
+exports.getOfflinePayments = async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'teacher') {
+      return handleError({ name: 'Forbidden', message: 'Access denied: Only teachers can view offline payments.' }, res, 'Access denied: Only teachers can view offline payments.', 403);
+    }
+
+    const teacherId = req.user._id;
+    const { startDate, endDate } = req.query;
+
+    let query = { teacher: teacherId };
+
+    if (startDate && endDate) {
+      query.paymentDate = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    }
+
+    const payments = await OfflinePayment.find(query)
+      .populate('student', 'fullname email')
+      .populate('course', 'title duration fee')
+      .populate('batch', 'batchName')
+      .sort({ paymentDate: -1 });
+
+    const paymentsWithFee = payments.map(payment => {
+      const paymentObj = payment.toObject();
+      paymentObj.amount = payment.course ? payment.course.fee : 0;
+      return paymentObj;
+    });
+
+    sendSuccessResponse(res, paymentsWithFee, 'All offline payments retrieved successfully');
+  } catch (err) {
+    handleError(err, res, 'Failed to retrieve offline payments');
+  }
+};
+
 
 // Teacher: Delete offline payment
 exports.deleteOfflinePayment = async (req, res) => {
@@ -660,6 +725,7 @@ exports.deleteOfflinePayment = async (req, res) => {
     await Payment.deleteOne({
       student: payment.student,
       course: payment.course,
+      batch: payment.batch,
       paidAt: payment.paymentDate,
       paymentMethod: 'cash'
     });
