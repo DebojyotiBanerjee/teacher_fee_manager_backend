@@ -12,6 +12,8 @@ const batchController = require('../controller/batch.controller');
 const courseController = require('../controller/course.controller');
 const attendanceController = require('../controller/attendence.controller');
 const courseApplicationController = require('../controller/courseApplication.controller');
+const batchEnrollmentController= require('../controller/batchEnrollment.controller')
+
 const {feeQRCodeValidator} = require('../validators/fee.validator')
 
 const feeController = require('../controller/fee.controller');
@@ -51,7 +53,7 @@ router.delete('/batch/:id', authenticateTeacher, batchController.deleteBatch);
 router.get('/batch/:id/students', authenticateTeacher, batchController.viewStudentsInBatch);
 
 // Teacher Unenroll Student from Batch
-router.post('/batch/unenroll', authenticateTeacher, batchController.unenrollStudentFromBatch);
+router.post('/batch/unenroll', authenticateTeacher, batchEnrollmentController.unenrollStudentFromBatch);
 
 // Course Management Routes
 router.post('/course', authenticateTeacher, CourseValidator, validator, courseController.createCourse);
@@ -65,6 +67,8 @@ router.post('/attendance/mark', authenticateTeacher, Attendance, validator, atte
 router.get('/attendance', authenticateTeacher, attendanceController.viewAttendance);
 
 router.get('/course-application', authenticateTeacher, courseApplicationController.viewCourseApplication);
+
+router.get('/course-application/:studentId', authenticateTeacher, courseApplicationController.viewCourseApplicationById);
 
 
 // Payment History for Teacher

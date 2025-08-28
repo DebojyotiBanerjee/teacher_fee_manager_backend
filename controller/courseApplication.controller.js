@@ -84,6 +84,7 @@ exports.viewCourseApplication = async (req, res) => {
             
             return {
                 enrollmentId: enrollStudentData.enrollmentId,
+                studentId:app.student._id,
                 studentName: app.student.fullname,
                 appliedAt: enrollStudentData.appliedAt,
                 courseName: app.course.title,
@@ -103,3 +104,107 @@ exports.viewCourseApplication = async (req, res) => {
 };
 
 
+exports.viewCourseApplicationById = async (req, res) => {
+    logControllerAction('View Course Application By Student ID', req.user, { params: req.params });
+
+    // Only teachers allowed
+    if (req.user.role !== 'teacher') {
+        return handleError(
+            { name: 'Forbidden', message: 'Only teachers can view course applications.' }, 
+            res, 
+            'Only teachers can view course applications.'
+        );
+    }
+
+    // Teacher profile check
+    if (!(await canAccessCourse(req, DetailTeacher, Course))) {
+        return handleError(
+            { name: 'Forbidden', message: 'You must be a teacher with a complete profile.' },
+            res, 
+            'You must be a teacher with a complete profile.'
+        );
+    }
+
+    try {
+        const { studentId } = req.params;
+
+        if (!studentId) {
+            return handleError(
+                { name: 'ValidationError', message: 'studentId is required in params' },
+                res,
+                'studentId is required'
+            );
+        }
+
+        // Get teacher's courses
+        const teacherCourses = await Course.find({ 
+            teacher: req.user._id, 
+            isDeleted: false 
+        }).select('_id title');
+
+        if (!teacherCourses || teacherCourses.length === 0) {
+            return sendSuccessResponse(res, {
+                applications: []
+            }, 'No courses found for this teacher');
+        }
+
+        const courseIds = teacherCourses.map(course => course._id);
+
+        // Find all applications for this student for teacher's courses
+        const courseApplications = await CourseApplication.find({
+            course: { $in: courseIds },
+            student: studentId
+        })
+        .populate({ path: 'course', select: 'title' })
+        .populate({ path: 'student', select: 'fullname' })
+        .sort({ appliedAt: -1 });
+
+        if (!courseApplications || courseApplications.length === 0) {
+            return sendSuccessResponse(res, {
+                applications: []
+            }, 'No applications found for this student');
+        }
+
+        // Get batches for all teacher's courses
+        const batches = await Batch.find({
+            course: { $in: courseIds },
+            isDeleted: false
+        }).select('batchName course days time maxStrength currentStrength');
+
+        // Create a map of courseId => batches
+        const courseBatchesMap = {};
+        batches.forEach(batch => {
+            if (!courseBatchesMap[batch.course]) {
+                courseBatchesMap[batch.course] = [];
+            }
+            courseBatchesMap[batch.course].push({
+                batchName: batch.batchName,
+                days: batch.days,
+                time: batch.time,
+                maxStrength: batch.maxStrength,
+                currentStrength: batch.currentStrength
+            });
+        });
+
+        // Transform final output
+        const transformedApplications = courseApplications.map(app => {
+            const enrollStudentData = app.enrollStudent;
+            return {
+                enrollmentId: enrollStudentData.enrollmentId,
+                studentName: app.student.fullname,
+                appliedAt: enrollStudentData.appliedAt,
+                courseName: app.course.title,
+                status: enrollStudentData.status,
+                batches: courseBatchesMap[app.course._id] || []
+            };
+        });
+
+        return sendSuccessResponse(res, {
+            applications: transformedApplications,
+            totalCourses: transformedApplications.length
+        }, 'Course applications fetched successfully');
+
+    } catch (err) {
+        return handleError(err, res, 'Failed to fetch course applications for this student');
+    }
+};

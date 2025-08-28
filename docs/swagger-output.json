@@ -1125,6 +1125,26 @@
         }
       }
     },
+    "/api/teacher/course-application/{studentId}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "studentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/user/dashboard": {
       "get": {
         "description": "",
@@ -1518,16 +1538,6 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "/api/user/batch/my-batches": {
-      "get": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
           }
         }
       }
