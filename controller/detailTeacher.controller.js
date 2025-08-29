@@ -204,7 +204,7 @@ exports.updateDetailTeacher = async (req, res) => {
         DetailTeacher,
         teacherData,
         req.user._id,
-        'user'
+        
       );
 
       sendSuccessResponse(res, savedTeacher.toObject(), 'Teacher detail created successfully', 201);
