@@ -96,7 +96,6 @@ exports.getStudentNotifications = async (req, res) => {
   }
 };
 
-<<<<<<< notification
 // Mark notification as read
 exports.markNotificationAsRead = async (req, res) => {
   try {
@@ -140,8 +139,6 @@ exports.markNotificationAsRead = async (req, res) => {
   }
 };
 
-=======
->>>>>>> local
 // Mark all notifications as read
 exports.markAllNotificationsAsRead = async (req, res) => {
   try {
