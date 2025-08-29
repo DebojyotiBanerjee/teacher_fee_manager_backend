@@ -349,6 +349,22 @@ exports.enrollInCourse = async (req, res) => {
   const existing = await checkDuplicate(CourseApplication, { course: courseId, student: req.user._id });
   if (existing) return handleError({ name: 'Duplicate', message: 'You have already enrolled in this course.' }, res, 'You have already enrolled in this course.');
   
+  // Check if student has paid for the course before allowing enrollment
+  const payment = await Payment.findOne({
+    student: req.user._id,
+    course: courseId,
+    status: 'paid'
+  });
+
+  if (!payment) {
+    return handleError(
+      { name: 'Forbidden', message: 'You must pay for the course before enrolling.' },
+      res,
+      'You must pay for the course before enrolling.',
+      403
+    );
+  }
+  
   try {
     // Create course application 
     const applicationData = { 
@@ -364,21 +380,6 @@ exports.enrollInCourse = async (req, res) => {
       .populate('course', 'title subtitle description fee duration')
       .populate('student', 'fullname email phone');
 
-      const payment = await Payment.findOne({
-  student: req.user._id,
-  course: courseId,
-  status: 'paid'
-});
-
-if (!payment) {
-  return handleError(
-    { name: 'Forbidden', message: 'You must pay for the course before enrolling.' },
-    res,
-    'You must pay for the course before enrolling.',
-    403
-  );
-}
-    
     // Get the enrollStudent virtual field
     const enrollmentData = populatedApplication.enrollStudent;
     
@@ -442,4 +443,3 @@ exports.viewMyCourseApplications = async (req, res) => {
     return handleError(err, res, 'Failed to fetch your course applications');
   }
 };
-
