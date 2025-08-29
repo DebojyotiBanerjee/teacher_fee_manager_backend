@@ -92,7 +92,7 @@ router.get('/offline-payments', authenticateTeacher, validator,feeController.get
 );
 
 //get offline payments of a particular course
-router.get('/offline-payments/:courseId', authenticateTeacher, validator, feeController.getOfflinePaymentsByCourseId)
+// router.get('/offline-payments/:courseId', authenticateTeacher, validator, feeController.getOfflinePaymentsByCourseId)
 
 router.delete('/offline-payment/:paymentId', authenticateTeacher, validator, feeController.deleteOfflinePayment);
 
