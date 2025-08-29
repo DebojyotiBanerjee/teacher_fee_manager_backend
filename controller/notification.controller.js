@@ -1,10 +1,108 @@
+const Payment = require('../models/payment.models');
+const User = require('../models/user.models');
+const nodemailer = require('nodemailer');
+
+// Utility: Send email (simple version, configure as needed)
+async function sendEmail(to, subject, text) {
+  // Configure your transporter with real credentials in production
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    }
+  });
+  await transporter.sendMail({ from: process.env.EMAIL_USER, to, subject, text });
+}
+
+// 1. Notify students 7 days before fee due date
+exports.notifyUpcomingFeeDue = async () => {
+  try {
+    const now = new Date();
+    const sevenDaysLater = new Date(now);
+    sevenDaysLater.setDate(now.getDate() + 7);
+    // Find payments due in 7 days and not yet paid for next cycle
+    const payments = await Payment.find({
+      nextDueDate: { $gte: sevenDaysLater.setHours(0,0,0,0), $lt: sevenDaysLater.setHours(23,59,59,999) },
+      status: { $ne: 'overdue' }
+    }).populate('student course');
+    for (const payment of payments) {
+      // Create notification for student
+      await Notification.create({
+        student: payment.student._id,
+        message: `Your fee for course "${payment.course.title}" is due on ${payment.nextDueDate.toISOString().slice(0,10)}. Please pay on time to avoid interruption.`,
+        relatedCourseId: payment.course._id,
+        status: 'unread',
+        isDeleted: false
+      });
+    }
+    return { notified: payments.length };
+  } catch (err) {
+    console.error('Error notifying students of upcoming fee due:', err);
+    throw err;
+  }
+};
+
+// 2. Email students on due date if not paid
+exports.emailFeeDueToday = async () => {
+  try {
+    const now = new Date();
+    const todayStart = new Date(now.setHours(0,0,0,0));
+    const todayEnd = new Date(now.setHours(23,59,59,999));
+    const payments = await Payment.find({
+      nextDueDate: { $gte: todayStart, $lte: todayEnd },
+      status: { $ne: 'paid' }
+    }).populate('student course');
+    for (const payment of payments) {
+      const student = payment.student;
+      if (student && student.email) {
+        await sendEmail(
+          student.email,
+          'Course Fee Payment Due',
+          `Dear ${student.fullname || 'Student'},\nYour fee for course "${payment.course.title}" is due today (${payment.nextDueDate.toISOString().slice(0,10)}). Please pay as soon as possible.`
+        );
+      }
+    }
+    return { emailed: payments.length };
+  } catch (err) {
+    console.error('Error emailing students for fee due today:', err);
+    throw err;
+  }
+};
+
+// 3. Notify student and teacher after payment (to be called after payment success)
+exports.notifyPaymentSuccess = async (studentId, courseId, paidAt) => {
+  try {
+    const course = await Course.findById(courseId).populate('teacher', 'fullname');
+    // Notify student
+    await Notification.create({
+      student: studentId,
+      message: `On ${paidAt.toISOString().slice(0,10)}, you paid for course "${course.title}".`,
+      relatedCourseId: courseId,
+      status: 'unread',
+      isDeleted: false
+    });
+    // Notify teacher
+    if (course && course.teacher && course.teacher._id) {
+      await Notification.create({
+        teacher: course.teacher._id,
+        message: `A student has paid for your course "${course.title}" on ${paidAt.toISOString().slice(0,10)}.`,
+        relatedCourseId: courseId,
+        status: 'unread',
+        isDeleted: false
+      });
+    }
+  } catch (err) {
+    console.error('Error notifying after payment:', err);
+  }
+};
 const Notification = require('../models/notification.models');
 const Batch = require('../models/batch.models');
 const Course = require('../models/course.models');
 const BatchEnrollment = require('../models/batchEnrollment.models');
 const { handleError, sendSuccessResponse, logControllerAction } = require('../utils/controllerUtils');
 
-// Teacher: Get teacher notifications and upcoming batches
+// Teacher: Get teacher notifications, upcoming batches, and recent student payments
 exports.getTeacherNotifications = async (req, res) => {
   try {
     logControllerAction('Get Teacher Notifications', req.user);
@@ -55,10 +153,21 @@ exports.getTeacherNotifications = async (req, res) => {
       isDeleted: false
     });
 
+    // Get recent student payments (last 5 payments for teacher's courses)
+    const recentPayments = await Payment.find({
+      teacher: req.user._id,
+      status: 'paid'
+    })
+      .populate('student', 'fullname email')
+      .populate('course', 'title')
+      .sort({ paidAt: -1 })
+      .limit(5);
+
     sendSuccessResponse(res, {
       notifications,
       upcomingBatches,
       unreadCount,
+      recentPayments,
       page,
       limit,
       total,
@@ -96,48 +205,7 @@ exports.getStudentNotifications = async (req, res) => {
   }
 };
 
-// Mark notification as read
-exports.markNotificationAsRead = async (req, res) => {
-  try {
-    logControllerAction('Mark Notification As Read', req.user, { params: req.params });
-    
-    const { notificationId } = req.params;
-    
-    if (!notificationId) {
-      return handleError(
-        { name: 'ValidationError', message: 'Notification ID is required.' },
-        res,
-        'Notification ID is required.'
-      );
-    }
 
-    // Find and update the notification
-    const notification = await Notification.findOneAndUpdate(
-      { 
-        _id: notificationId,
-        $or: [
-          { teacher: req.user._id },
-          { student: req.user._id }
-        ],
-        isDeleted: false
-      },
-      { status: 'read' },
-      { new: true }
-    );
-
-    if (!notification) {
-      return handleError(
-        { name: 'NotFound', message: 'Notification not found or you do not have access to it.' },
-        res,
-        'Notification not found or you do not have access to it.'
-      );
-    }
-
-    sendSuccessResponse(res, notification, 'Notification marked as read successfully');
-  } catch (err) {
-    handleError(err, res, 'Failed to mark notification as read');
-  }
-};
 
 // Mark all notifications as read
 exports.markAllNotificationsAsRead = async (req, res) => {

@@ -9,7 +9,7 @@ exports.markAttendance = async (req, res) => {
   try {
     // Destructure request body for clear testing
     const { batch, date, attendance } = req.body; // attendance: [{ student, status, notes }]
-    
+
     // Check teacher profile completeness
     if (!(await canAccessCourse(req, DetailTeacher, Course))) {
       return handleError(
@@ -23,6 +23,16 @@ exports.markAttendance = async (req, res) => {
       return handleError({ name: 'ValidationError' }, res, 'Missing required fields');
     }
 
+    // Find the corresponding DetailTeacher document for current user
+    const detailTeacher = await DetailTeacher.findOne({ user: req.user._id });
+    if (!detailTeacher) {
+      return handleError(
+        { name: 'Forbidden', message: 'Complete teacher profile required.' },
+        res,
+        'Teacher profile not found.'
+      );
+    }
+
     // Check if batch exists and teacher owns the batch's course
     const batchDoc = await Batch.findById(batch).populate('course');
     if (!batchDoc) {
@@ -33,17 +43,20 @@ exports.markAttendance = async (req, res) => {
       return handleError({ name: 'Forbidden', message: 'You do not own this batch.' }, res, 'You do not own this batch.');
     }
 
-    // Create attendance records
+    // Create or update attendance records
     const records = await Promise.all(attendance.map(async (entry) => {
-      return Attendance.create({
-        teacherDetailId: req.user._id,
-        batch,
-        course: batchDoc.course, // for reference
-        student: entry.student,
-        date,
-        status: entry.status,
-        notes: entry.notes || ''
-      });
+      return Attendance.findOneAndUpdate(
+        { batch, student: entry.student, date: new Date(date) },
+        {
+          $set: {
+            teacherDetailId: detailTeacher._id,  // Use DetailTeacher _id here
+            course: batchDoc.course,
+            status: entry.status,
+            notes: entry.notes || ''
+          }
+        },
+        { new: true, upsert: true }
+      );
     }));
 
     sendSuccessResponse(res, records, 'Attendance marked successfully', 201);
@@ -94,7 +107,10 @@ exports.viewAttendance = async (req, res) => {
       Attendance.find(query)
         .populate('student', 'fullname email')
         .populate('batch', 'batchName')
-        .populate('teacherDetailId', 'user')
+        .populate({
+          path: 'teacherDetailId',
+          populate: { path: 'user', select: 'fullname email' }
+        })        
         .skip(skip)
         .limit(limitNum)
         .sort(sort),
@@ -157,7 +173,11 @@ exports.viewStudentAttendance = async (req, res) => {
     const [records, total] = await Promise.all([
       Attendance.find(query)
         .populate('batch', 'batchName')
-        .populate('teacherDetailId', 'user')
+        .populate({
+          path: 'teacherDetailId',
+          populate: { path: 'user', select: 'fullname email' }
+        })
+        
         .select('date status notes batch teacherDetailId') 
         .skip(skip)
         .limit(limitNum)

@@ -1,6 +1,7 @@
 const Course = require('../models/course.models');
 const DetailTeacher = require('../models/detailTeacher.models');
 const CourseApplication = require('../models/courseApplication.models');
+const Payment = require('../models/payment.models')
 const { sanitizeRequest } = require('../utils/sanitizer');
 const {
   handleError,
@@ -348,6 +349,22 @@ exports.enrollInCourse = async (req, res) => {
   const existing = await checkDuplicate(CourseApplication, { course: courseId, student: req.user._id });
   if (existing) return handleError({ name: 'Duplicate', message: 'You have already enrolled in this course.' }, res, 'You have already enrolled in this course.');
   
+  // Check if student has paid for the course before allowing enrollment
+  const payment = await Payment.findOne({
+    student: req.user._id,
+    course: courseId,
+    status: 'paid'
+  });
+
+  if (!payment) {
+    return handleError(
+      { name: 'Forbidden', message: 'You must pay for the course before enrolling.' },
+      res,
+      'You must pay for the course before enrolling.',
+      403
+    );
+  }
+  
   try {
     // Create course application 
     const applicationData = { 
@@ -362,7 +379,7 @@ exports.enrollInCourse = async (req, res) => {
     const populatedApplication = await CourseApplication.findById(application._id)
       .populate('course', 'title subtitle description fee duration')
       .populate('student', 'fullname email phone');
-    
+
     // Get the enrollStudent virtual field
     const enrollmentData = populatedApplication.enrollStudent;
     
@@ -385,3 +402,44 @@ exports.enrollInCourse = async (req, res) => {
   }
 };
 
+// Student: View all courses the student has applied to
+exports.viewMyCourseApplications = async (req, res) => {
+  logControllerAction('View My Course Applications', req.user);
+  if (req.user.role !== 'student') {
+    return handleError({ name: 'Forbidden', message: 'Only students can view their course applications.' }, res, 'Only students can view their course applications.');
+  }
+  try {
+    // Find all course applications for this student
+    const applications = await CourseApplication.find({ student: req.user._id })
+      .populate({
+        path: 'course',
+        select: 'title subtitle description fee duration teacher',
+        populate: { path: 'teacher', select: 'fullname email' }
+      })
+      .sort({ appliedAt: -1 });
+
+    // Transform the data
+    const result = applications.map(app => {
+      const enrollStudentData = app.enrollStudent;
+      return {        
+        appliedAt: enrollStudentData.appliedAt,        
+        course: app.course ? {
+          id: app.course._id,
+          title: app.course.title,
+          fee: app.course.fee,
+          duration: app.course.duration,
+          teacher: app.course.teacher ? {
+            fullname: app.course.teacher.fullname,            
+          } : null
+        } : null
+      };
+    });
+
+    return sendSuccessResponse(res, {
+      applications: result,
+      total: result.length
+    }, 'Your course applications fetched successfully');
+  } catch (err) {
+    return handleError(err, res, 'Failed to fetch your course applications');
+  }
+};

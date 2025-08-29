@@ -1,3 +1,12 @@
+/**
+ * Check if a teacher already has a QR code
+ * @param {String|ObjectId} teacherId - The teacher's ID
+ * @param {Mongoose.Model} FeeModel - The Fee mongoose model
+ * @returns {Promise<Boolean>} - true if QR exists, false otherwise
+ */
+const teacherHasQRCode = async (teacherId, FeeModel) => {
+  return !!(await FeeModel.findOne({ teacher: teacherId }));
+};
 // Utility functions to eliminate repeated code patterns across controllers
 
 /**
@@ -42,7 +51,13 @@ const handleError = (err, res, customMessage = null) => {
     });
   }
 
-  
+  if (err.name === 'forbidden') {
+    return res.status(403).json({
+      success: false,
+      message: err.message || 'Access forbidden'
+    });
+  }
+
   return res.status(500).json({
     success: false,
     message: customMessage || 'Internal server error',
@@ -290,5 +305,6 @@ module.exports = {
   canAccessCourse,
   canStudentViewOrEnroll,
   isOwner,
-  softDelete 
-}; 
+  softDelete,
+  teacherHasQRCode
+};
