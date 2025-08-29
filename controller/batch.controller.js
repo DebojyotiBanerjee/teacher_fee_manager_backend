@@ -87,7 +87,7 @@ exports.viewMyBatchesAsTeacher = async (req, res) => {
     const teacherCourseIds = teacherCourses.map(course => course._id);
 
     // Filtering - only show batches for teacher's courses
-    const filter = { 
+    const filter = {
       isDeleted: false,
       course: { $in: teacherCourseIds } // Only batches for teacher's courses
     };
@@ -131,19 +131,22 @@ exports.viewMyBatchesAsTeacher = async (req, res) => {
     const batchesWithStats = await Promise.all(
       batches.map(async (batch) => {
         // Get enrolled students
-        const enrolledStudents = await CourseApplication.find({ course: batch.course })
-          .populate('student', 'fullname email');
+        const enrolledStudents = await BatchEnrollment.find({
+          batch: batch._id,
+        }).populate("student", "fullname email");
 
         // Get attendance stats
-        const totalAttendanceRecords = await Attendance.countDocuments({ course: batch.course });
+        const totalAttendanceRecords = await Attendance.countDocuments({
+          batch: batch._id,
+        });
         const presentRecords = await Attendance.countDocuments({
-          course: batch.course,
-          status: 'present'
+          batch: batch._id,
+          status: "present",
         });
 
         const attendancePercentage = totalAttendanceRecords > 0
-          ? Math.round((presentRecords / totalAttendanceRecords) * 100)
-          : 0;
+            ? Math.round((presentRecords / totalAttendanceRecords) * 100)
+            : 0;
 
         return {
           ...batch.toObject(),
@@ -159,10 +162,10 @@ exports.viewMyBatchesAsTeacher = async (req, res) => {
     );
 
     sendSuccessResponse(res, {
-      batches: batchesWithStats,
-      page,
-      limit,
-      total,
+        batches: batchesWithStats,
+        page,
+        limit,
+        total,
       totalPages: Math.ceil(total / limit)
     }, 'Batches retrieved successfully');
   } catch (err) {
@@ -193,8 +196,9 @@ exports.getBatchById = async (req, res) => {
     }
 
     // Get enrolled students
-    const enrolledStudents = await CourseApplication.find({ course: batch.course })
-      .populate('student', 'fullname email');
+    const enrolledStudents = await BatchEnrollment.find({
+      batch: batch._id,
+    }).populate('student', 'fullname email');``
 
     // Get detailed attendance stats
     const attendanceStats = await Attendance.aggregate([
@@ -220,24 +224,24 @@ exports.getBatchById = async (req, res) => {
 
     const totalAttendance = Object.values(stats).reduce((sum, count) => sum + count, 0);
     const attendancePercentage = totalAttendance > 0
-      ? Math.round((stats.present / totalAttendance) * 100)
-      : 0;
+        ? Math.round((stats.present / totalAttendance) * 100)
+        : 0;
 
     sendSuccessResponse(res, {
-      ...batch.toObject(),
-      enrolledStudents: enrolledStudents.length,
-      attendanceStats: {
-        present: stats.present,
-        absent: stats.absent,
-        late: stats.late,
-        excused: stats.excused,
-        total: totalAttendance,
-        percentage: attendancePercentage,
+        ...batch.toObject(),
+        enrolledStudents: enrolledStudents.length,
+        attendanceStats: {
+          present: stats.present,
+          absent: stats.absent,
+          late: stats.late,
+          excused: stats.excused,
+          total: totalAttendance,
+          percentage: attendancePercentage,
         summary: `${stats.present}/${totalAttendance} students attended (${attendancePercentage}%)`
-      },
+        },
       studentList: enrolledStudents.map(enrollment => ({
-        id: enrollment.student._id,
-        fullname: enrollment.student.fullname,
+          id: enrollment.student._id,
+          fullname: enrollment.student.fullname,
         email: enrollment.student.email
       }))
     }, 'Batch details retrieved successfully');
@@ -408,8 +412,8 @@ exports.viewStudentsInBatch = async (req, res) => {
         const totalClasses = studentAttendance.length;
         const presentClasses = studentAttendance.filter(a => a.status === 'present').length;
         const attendancePercentage = totalClasses > 0
-          ? Math.round((presentClasses / totalClasses) * 100)
-          : 0;
+            ? Math.round((presentClasses / totalClasses) * 100)
+            : 0;
 
         return {
           student: enrollment.student,
@@ -428,15 +432,15 @@ exports.viewStudentsInBatch = async (req, res) => {
     );
 
     sendSuccessResponse(res, {
-      batch: {
-        id: batch._id,
-        batchName: batch.batchName,
+        batch: {
+          id: batch._id,
+          batchName: batch.batchName,
         course: batch.course
-      },
-      students: studentsWithStats,
-      page,
-      limit,
-      total,
+        },
+        students: studentsWithStats,
+        page,
+        limit,
+        total,
       totalPages: Math.ceil(total / limit)
     }, 'Students in batch retrieved successfully');
   } catch (err) {
@@ -470,6 +474,102 @@ exports.viewAvailableBatches = async (req, res) => {
   }
 };
 
+// STUDENT: Enroll in a batch
+exports.enrollInBatch = async (req, res) => {
+  try {
+    // Destructure request body for clear testing
+    const { batchId } = req.body;
+    const studentId = req.user._id;
 
+    if (!batchId) {
+      return handleError({ name: 'ValidationError' }, res, 'Batch ID is required');
+    }
+    const batch = await Batch.findOne({ _id: batchId, isDeleted: false }).populate('course');
+    if (!batch) {
+      return handleError({ name: 'NotFound' }, res, 'Batch not found');
+    }
+    // Check if batch is full
+    if (batch.currentStrength >= batch.maxStrength) {
+      return handleError({ name: 'Forbidden' }, res, 'Batch is full');
+    }
+    // Check if already enrolled in another batch for the same course
+    const alreadyEnrolled = await BatchEnrollment.findOne({
+      student: studentId,
+      batch: { $ne: batchId }
+    }).populate('batch');
+    if (alreadyEnrolled && alreadyEnrolled.batch.course.toString() === batch.course._id.toString()) {
+      return handleError({ name: 'Duplicate', message: 'Already enrolled in another batch for this course' }, res);
+    }
+    // Check if already enrolled in a batch with the same timing (across all courses)
+    const sameTimeBatch = await BatchEnrollment.findOne({ student: studentId })
+      .populate('batch');
+    if (sameTimeBatch && sameTimeBatch.batch.time === batch.time) {
+      return handleError({ name: 'Duplicate' }, res, 'Already enrolled in a batch with the same timing');
+    }
+    // Enroll
+    await BatchEnrollment.create({ batch: batchId, student: studentId });
+    // Always recalculate currentStrength
+    const count = await BatchEnrollment.countDocuments({ batch: batchId });
+    await Batch.findByIdAndUpdate(batchId, { currentStrength: count });
+    sendSuccessResponse(res, { batchId, currentStrength: count, maxStrength: batch.maxStrength }, 'Enrolled in batch successfully', 201);
+  } catch (err) {
+    handleError(err, res, 'Failed to enroll in batch');
+  }
+};
 
+// STUDENT: View enrolled batch(es)
+exports.viewMyBatchesAsStudent = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+    const enrollments = await BatchEnrollment.find({ student: studentId })
+      .populate({
+        path: 'batch',
+      match: { isDeleted: false }, // Only populate non-deleted batches
+        populate: { path: 'course', select: 'title' }
+    });
 
+    // Filter out enrollments where batch is null (deleted batches)
+    const validEnrollments = enrollments.filter(enrollment => enrollment.batch !== null);
+
+    sendSuccessResponse(res, validEnrollments, 'Enrolled batches retrieved');
+  } catch (err) {
+    handleError(err, res, 'Failed to retrieve enrolled batches');
+  }
+};
+
+// TEACHER: Unenroll a student from a batch
+exports.unenrollStudentFromBatch = async (req, res) => {
+  try {
+    // Destructure request body for clear testing
+    const { batchId, studentId } = req.body;
+
+    if (!batchId || !studentId) {
+      return handleError({ name: 'ValidationError' }, res, 'Batch ID and Student ID are required');
+    }
+    const batch = await Batch.findOne({ _id: batchId, isDeleted: false });
+    if (!batch) {
+      return handleError({ name: 'NotFound', message: 'Batch not found or has been deleted' }, res);
+    }
+    // Only the teacher who owns the course can unenroll
+    const course = await Course.findOne({ _id: batch.course, teacher: req.user._id });
+    if (!course) {
+      return handleError({ name: 'Forbidden' }, res, 'You do not own this batch');
+    }
+    // Debug: Check if enrollment exists
+    const existingEnrollment = await BatchEnrollment.findOne({ batch: batchId, student: studentId });
+    console.log('Existing enrollment:', existingEnrollment);
+    console.log('Searching for batchId:', batchId, 'studentId:', studentId);
+
+    // Remove enrollment
+    const result = await BatchEnrollment.findOneAndDelete({ batch: batchId, student: studentId });
+    if (!result) {
+      return handleError({ name: 'NotFound', message: 'Student not enrolled in this batch' }, res);
+    }
+    // Always recalculate currentStrength
+    const count = await BatchEnrollment.countDocuments({ batch: batchId });
+    await Batch.findByIdAndUpdate(batchId, { currentStrength: count });
+    sendSuccessResponse(res, null, 'Student unenrolled from batch successfully');
+  } catch (err) {
+    handleError(err, res, 'Failed to unenroll student from batch');
+  }
+};
