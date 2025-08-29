@@ -87,9 +87,7 @@ exports.studentPayForCourse = async (req, res) => {
     const courseId = Array.isArray(courseIdRaw) ? courseIdRaw[0] : courseIdRaw;
     const transactionId = Array.isArray(transactionIdRaw) ? transactionIdRaw[0] : transactionIdRaw;
     
-    // Debug logging
-    console.log('Received courseId:', courseId, 'Type:', typeof courseId);
-    console.log('req.fields:', req.fields);
+    
     
     if (!courseId) {
       return handleError({ name: 'ValidationError', message: 'Course ID is required.' }, res, 'Course ID is required.', 400);
