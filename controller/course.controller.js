@@ -1,6 +1,7 @@
 const Course = require('../models/course.models');
 const DetailTeacher = require('../models/detailTeacher.models');
 const CourseApplication = require('../models/courseApplication.models');
+const Payment = require('../models/payment.models')
 const { sanitizeRequest } = require('../utils/sanitizer');
 const {
   handleError,
@@ -362,6 +363,21 @@ exports.enrollInCourse = async (req, res) => {
     const populatedApplication = await CourseApplication.findById(application._id)
       .populate('course', 'title subtitle description fee duration')
       .populate('student', 'fullname email phone');
+
+      const payment = await Payment.findOne({
+  student: req.user._id,
+  course: courseId,
+  status: 'paid'
+});
+
+if (!payment) {
+  return handleError(
+    { name: 'Forbidden', message: 'You must pay for the course before enrolling.' },
+    res,
+    'You must pay for the course before enrolling.',
+    403
+  );
+}
     
     // Get the enrollStudent virtual field
     const enrollmentData = populatedApplication.enrollStudent;
