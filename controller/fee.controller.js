@@ -81,30 +81,26 @@ exports.studentPayForCourse = async (req, res) => {
     }
     const studentId = req.user._id;
     // Get data from formidable fields
-    const { courseId, transactionId } = req.fields;
-    if (!mongoose.Types.ObjectId.isValid(courseId)) {
-      return handleError({ name: 'ValidationError', message: 'Invalid course ID.' }, res, 'Invalid course ID.', 400);
+    const { courseId: courseIdRaw, transactionId: transactionIdRaw } = req.fields;
+    
+    // Extract values from arrays (formidable returns arrays)
+    const courseId = Array.isArray(courseIdRaw) ? courseIdRaw[0] : courseIdRaw;
+    const transactionId = Array.isArray(transactionIdRaw) ? transactionIdRaw[0] : transactionIdRaw;
+    
+    // Debug logging
+    console.log('Received courseId:', courseId, 'Type:', typeof courseId);
+    console.log('req.fields:', req.fields);
+    
+    if (!courseId) {
+      return handleError({ name: 'ValidationError', message: 'Course ID is required.' }, res, 'Course ID is required.', 400);
     }
+    
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return handleError({ name: 'ValidationError', message: 'Invalid course ID format.' }, res, 'Invalid course ID format.', 400);
+    }
+    
     if (!transactionId || typeof transactionId !== 'string' || !transactionId.trim()) {
       return handleError({ name: 'ValidationError', message: 'Transaction ID is required.' }, res, 'Transaction ID is required.', 400);
-    }
-    // Check enrollment (robust: check all enrollments for this student)
-    const enrollments = await BatchEnrollment.find({ student: studentId });
-    let isEnrolled = false;
-    for (const enrollment of enrollments) {
-      if (enrollment.course && enrollment.course.toString() === courseId.toString()) {
-        isEnrolled = true;
-        break;
-      } else if (enrollment.batch) {
-        const batch = await enrollment.populate('batch');
-        if (batch && batch.batch && batch.batch.course && batch.batch.course.toString() === courseId.toString()) {
-          isEnrolled = true;
-          break;
-        }
-      }
-    }
-    if (!isEnrolled) {
-      return handleError({ name: 'Forbidden', message: 'You are not enrolled in this course.' }, res, 'You are not enrolled in this course.', 403);
     }
     // Get course and teacher
     const course = await Course.findById(courseId);

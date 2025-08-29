@@ -51,7 +51,13 @@ const handleError = (err, res, customMessage = null) => {
     });
   }
 
-  
+  if (err.name === 'forbidden') {
+    return res.status(403).json({
+      success: false,
+      message: err.message || 'Access forbidden'
+    });
+  }
+
   return res.status(500).json({
     success: false,
     message: customMessage || 'Internal server error',
