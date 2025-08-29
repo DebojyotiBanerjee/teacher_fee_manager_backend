@@ -85,63 +85,18 @@ exports.getStudentNotifications = async (req, res) => {
     // Pagination
     const page = parseInt(req.query.page) > 0 ? parseInt(req.query.page) : 1;
     const limit = parseInt(req.query.limit) > 0 ? parseInt(req.query.limit) : 10;
-    const skip = (page - 1) * limit;
 
-    // Get student's notifications
-    const [notifications, total] = await Promise.all([
-      Notification.find({ 
-        student: req.user._id, 
-        isDeleted: false 
-      })
-        .populate('relatedCourseId', 'title')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit),
-      Notification.countDocuments({ 
-        student: req.user._id, 
-        isDeleted: false 
-      })
-    ]);
+    // Use the updated utility function that gets upcoming batches for enrolled courses
+    const { getStudentNotifications } = require('../utils/notificationUtils');
+    const result = await getStudentNotifications(req.user._id, page, limit);
 
-    // Get upcoming batches for the student (next 3 batches they're enrolled in)
-    const studentEnrollments = await BatchEnrollment.find({ 
-      student: req.user._id 
-    }).populate('batch');
-
-    const enrolledBatchIds = studentEnrollments
-      .filter(enrollment => enrollment.batch && !enrollment.batch.isDeleted)
-      .map(enrollment => enrollment.batch._id);
-
-    const upcomingBatches = await Batch.find({
-      _id: { $in: enrolledBatchIds },
-      isDeleted: false,
-      startDate: { $gte: new Date() }
-    })
-      .populate('course', 'title')
-      .sort({ startDate: 1 })
-      .limit(3);
-
-    // Get unread count
-    const unreadCount = await Notification.countDocuments({
-      student: req.user._id,
-      status: 'unread',
-      isDeleted: false
-    });
-
-    sendSuccessResponse(res, {
-      notifications,
-      upcomingBatches,
-      unreadCount,
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit)
-    }, 'Student notifications retrieved successfully');
+    sendSuccessResponse(res, result, 'Student notifications retrieved successfully');
   } catch (err) {
     handleError(err, res, 'Failed to retrieve student notifications');
   }
 };
 
+<<<<<<< notification
 // Mark notification as read
 exports.markNotificationAsRead = async (req, res) => {
   try {
@@ -185,6 +140,8 @@ exports.markNotificationAsRead = async (req, res) => {
   }
 };
 
+=======
+>>>>>>> local
 // Mark all notifications as read
 exports.markAllNotificationsAsRead = async (req, res) => {
   try {
