@@ -7,6 +7,7 @@ const OfflinePayment = require('../models/offlinePayment.models');
 const mongoose = require('mongoose');
 const { teacherHasQRCode, handleError, sendSuccessResponse } = require('../utils/controllerUtils');
 const CloudinaryService = require('../utils/cloudinaryService');
+const courseApplication = require('../models/courseApplication.models');
 
 
 
