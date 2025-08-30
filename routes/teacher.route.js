@@ -103,7 +103,7 @@ router.post('/expense', authenticateTeacher, teacherExpenseValidator, validator,
 router.get('/expense', authenticateTeacher, teacherExpenseController.getExpenses);
 
 // Get expense summary
-router.get('/expense/summary', authenticateTeacher, teacherExpenseController.getExpenseSummary);
+router.get('/expense/summary', authenticateTeacher, teacherExpenseController.getExpenseSummaryExpenses);
 
 // Get specific expense
 router.get('/expense/:expenseId', authenticateTeacher, teacherExpenseController.getExpenseById);
