@@ -42,28 +42,24 @@ exports.teacherDashboard = async (req, res) => {
 exports.createDetailTeacher = async (req, res) => {
   try {
     logControllerAction('Create Teacher Detail', req.user, { body: req.body });
-
+    
+    // Sanitize input
     sanitizeRequest(req);
-
-    const {
-      fullname,
-      phone,
-      gender,
-      qualifications,
-      experience,
-      address,
-      subjectsTaught,
-      socialMedia,
-      profilePic,
-      dob,
-    } = req.body;
-
+    
+    // Destructure request body for clear testing
+    const { gender, qualifications, experience, address, subjectsTaught, socialMedia, profilePic, dob } = req.body;
+    
+    // Check role access
     const roleCheck = checkRoleAccess(req, 'teacher');
     if (!roleCheck.allowed) {
-      return res.status(403).json({ success: false, message: roleCheck.message });
+      return res.status(403).json({
+        success: false,
+        message: roleCheck.message
+      });
     }
 
-    const { exists } = await checkExistingProfile(DetailTeacher, req.user._id);
+    // Check if profile already exists
+    const { exists  } = await checkExistingProfile(DetailTeacher, req.user._id);
     if (exists) {
       return res.status(409).json({
         success: false,
@@ -71,32 +67,22 @@ exports.createDetailTeacher = async (req, res) => {
       });
     }
 
-    const teacherData = {
-      fullname,
-      phone,
-      gender,
-      qualifications,
-      experience,
-      address,
-      subjectsTaught,
-      socialMedia,
-      profilePic,
-      dob,
-    };
+    // Automatically set isProfileComplete
+    const teacherData = { gender, qualifications, experience, address, subjectsTaught, socialMedia, profilePic, dob };
     teacherData.isProfileComplete = isTeacherProfileComplete(teacherData);
-
+    
+    // Create profile with populated user
     const savedTeacher = await createProfile(
-      DetailTeacher,
-      teacherData,
+      DetailTeacher, 
+      teacherData, 
+      req.user._id
     );
-    // Also update fullname and phone in User document
-    await require('../models/user.models').findByIdAndUpdate(
-      req.user._id,
-      { fullname, phone },
-      { new: true }
-    );
-
-    sendSuccessResponse(res, savedTeacher.toObject(), 'Teacher detail created successfully', 201);
+    
+    sendSuccessResponse(res, {
+      ...savedTeacher.toObject()
+      
+    }, 'Teacher detail created successfully', 201);
+    
   } catch (err) {
     handleError(err, res, 'Failed to create teacher detail');
   }
@@ -169,77 +155,89 @@ exports.updateDetailTeacher = async (req, res) => {
   try {
     logControllerAction('Update Teacher Detail', req.user, { body: req.body });
 
+    // Sanitize input
     sanitizeRequest(req);
 
-    const {
-      fullname,
-      phone,
-      gender,
-      qualifications,
-      experience,
-      address,
-      subjectsTaught,
-      socialMedia,
-      profilePic,
-      dob,
-    } = req.body;
+    // Destructure request body for clear testing
+    const { fullname, phone, gender, qualifications, experience, address, subjectsTaught, socialMedia, profilePic, dob } = req.body;
 
+    // Check role access
     const roleCheck = checkRoleAccess(req, 'teacher');
     if (!roleCheck.allowed) {
-      return res.status(403).json({ success: false, message: roleCheck.message });
+      return res.status(403).json({
+        success: false,
+        message: roleCheck.message
+      });
     }
 
+    // Check if profile exists
     const { exists } = await checkExistingProfile(DetailTeacher, req.user._id);
 
     // Prevent updating email and role fields
     if ('email' in req.body) delete req.body.email;
     if ('role' in req.body) delete req.body.role;
 
-    const teacherData = {
-      user: req.user._id,
-      fullname,
-      phone,
-      gender,
-      qualifications,
-      experience,
-      address,
-      subjectsTaught,
-      socialMedia,
-      profilePic,
-      dob,
-    };
+    // Automatically set isProfileComplete
+    const teacherData = { gender, qualifications, experience, address, subjectsTaught, socialMedia, profilePic, dob };
     teacherData.isProfileComplete = isTeacherProfileComplete(teacherData);
 
-    // Update user document fullname and phone
-    if (fullname || phone) {
-      const userUpdate = {};
-      if(fullname) userUpdate.fullname = fullname;
-      if(phone) userUpdate.phone = phone;
-
-      await require('../models/user.models').findByIdAndUpdate(
-        req.user._id,
-        { $set: userUpdate },
-        { new: true }
-      );
-    }
-
-    let updatedTeacher;
     if (!exists) {
-      // If profile doesn't exist, create new
-      updatedTeacher = await createProfile(
+      // If no profile exists, allow updating registered fields except email and role
+      // Update user fields except email and role
+      const allowedUserFields = ['fullname', 'phone'];
+      const userUpdate = {};
+      allowedUserFields.forEach(field => {
+        if (field in req.body) userUpdate[field] = req.body[field];
+      });
+
+      // Update user document
+      if (Object.keys(userUpdate).length > 0) {
+        await require('../models/user.models').findByIdAndUpdate(
+          req.user._id,
+          { $set: userUpdate },
+          { new: true }
+        );
+      }
+
+      // Create new teacher detail profile
+      const savedTeacher = await createProfile(
         DetailTeacher,
         teacherData,
+        req.user._id,
+        
       );
+
+      sendSuccessResponse(res, savedTeacher.toObject(), 'Teacher detail created successfully', 201);
     } else {
-      // Update existing profile with populated user fields
-      updatedTeacher = await updateProfile(
+      // Update existing profile
+      // Prevent updating email and role in user subdocument
+      const allowedUserFields = ['fullname', 'phone'];
+      const userUpdate = {};
+      allowedUserFields.forEach(field => {
+        if (field in req.body) userUpdate[field] = req.body[field];
+      });
+
+      // Update user document
+      if (Object.keys(userUpdate).length > 0) {
+        await require('../models/user.models').findByIdAndUpdate(
+          req.user._id,
+          { $set: userUpdate },
+          { new: true }
+        );
+      }
+
+      const updatedTeacher = await updateProfile(
         DetailTeacher,
+        req.user._id,
         teacherData,
-        { user: 'fullname email role phone' }
+        {
+          user: 'fullname email role phone'
+        }
       );
+
+      sendSuccessResponse(res, updatedTeacher.toObject(), 'Teacher detail updated successfully');
     }
 
-    sendSuccessResponse(res, updatedTeacher.toObject(), 'Teacher detail updated successfully');
   } catch (err) {
     handleError(err, res, 'Failed to update teacher detail');
   }
@@ -289,4 +287,3 @@ module.exports = {
   deleteDetailTeacher: exports.deleteDetailTeacher,
   isTeacherProfileComplete
 };
-
