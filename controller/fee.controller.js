@@ -308,12 +308,10 @@ exports.updateQRCode = async (req, res) => {
     }
 
     // Upload new image
-    const uploadResult = await CloudinaryService.uploadFile(qrCodeFile, {
-      folder: 'qr_codes'
-    });
+    const uploadResult = await CloudinaryService.uploadQRCode(qrCodeFile);
 
-    // Update fee record
-    fee.qrCodeUrl = uploadResult.url;
+    // Update fee record with cache-busting timestamp
+    fee.qrCodeUrl = `${uploadResult.url}?v=${new Date().getTime()}`;
     fee.cloudinaryPublicId = uploadResult.public_id;
     fee.qrUploadedAt = new Date();
 
