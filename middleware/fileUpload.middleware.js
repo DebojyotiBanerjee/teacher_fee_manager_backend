@@ -9,7 +9,7 @@ const createUploadMiddleware = (fieldName, options = {}) => {
             maxFiles: 1,
             multiples: false,
             filter: ({ mimetype }) => {
-                return mimetype && ['image/jpeg', 'image/jpg', 'image/png'].includes(mimetype);
+                return mimetype && mimetype.startsWith('image/');
             },
             ...options
         });
@@ -31,7 +31,7 @@ const createUploadMiddleware = (fieldName, options = {}) => {
                 if (err.code === 1003) { // Formidable's error code for invalid file type
                     return res.status(400).json({
                         success: false,
-                        message: 'Invalid file type. Only JPEG, JPG and PNG files are allowed'
+                        message: 'Invalid file type. Only image files are allowed'
                     });
                 }
                 return res.status(500).json({
