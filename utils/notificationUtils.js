@@ -2,6 +2,8 @@ const Notification = require('../models/notification.models');
 const Batch = require('../models/batch.models');
 const Course = require('../models/course.models');
 const BatchEnrollment = require('../models/batchEnrollment.models');
+const Payment = require('../models/payment.models');
+const CourseApplication = require('../models/courseApplication.models');
 
 // Get upcoming batches for teacher
 exports.getTeacherUpcomingBatches = async (teacherId) => {
@@ -122,10 +124,37 @@ exports.getStudentNotifications = async (studentId, page = 1, limit = 10) => {
       isDeleted: false
     });
 
+    // Get upcoming batches for courses the student has enrolled in (paid for)
+    
+    // Find courses the student has paid for or enrolled in
+    const [studentPayments, studentEnrollments] = await Promise.all([
+      Payment.find({ 
+        student: studentId, 
+        status: 'paid' 
+      }).distinct('course'),
+      CourseApplication.find({ 
+        student: studentId 
+      }).distinct('course')
+    ]);
+
+    // Combine both paid courses and enrolled courses
+    const enrolledCourseIds = [...new Set([...studentPayments, ...studentEnrollments])];
+
+    // Get upcoming batches for these courses
+    const upcomingBatches = await Batch.find({
+      course: { $in: enrolledCourseIds },
+      isDeleted: false,
+      startDate: { $gte: new Date() }
+    })
+      .populate('course', 'title')
+      .sort({ startDate: 1 })
+      .limit(3);
+
     return {
       notifications,
       total,
       unreadCount,
+      upcomingBatches,
       page,
       limit,
       totalPages: Math.ceil(total / limit)
@@ -136,6 +165,7 @@ exports.getStudentNotifications = async (studentId, page = 1, limit = 10) => {
       notifications: [],
       total: 0,
       unreadCount: 0,
+      upcomingBatches: [],
       page,
       limit,
       totalPages: 0
