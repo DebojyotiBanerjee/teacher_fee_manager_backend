@@ -2,7 +2,7 @@ const Course = require('../models/course.models');
 const DetailTeacher = require('../models/detailTeacher.models');
 const CourseApplication = require('../models/courseApplication.models');
 const Payment = require('../models/payment.models')
-const DetailStudent = require('../models/detailStudent.models');
+const DetailStudent = require('../models/detailStudent.model');
 const { sanitizeRequest } = require('../utils/sanitizer');
 const {
   handleError,
