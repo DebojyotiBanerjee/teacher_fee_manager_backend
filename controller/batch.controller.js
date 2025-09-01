@@ -488,6 +488,22 @@ exports.enrollInBatch = async (req, res) => {
     if (!batch) {
       return handleError({ name: 'NotFound' }, res, 'Batch not found');
     }
+
+    // Check if student is enrolled in the course before allowing batch enrollment
+    const courseEnrollment = await CourseApplication.findOne({
+      course: batch.course._id,
+      student: studentId
+    });
+
+    if (!courseEnrollment) {
+      return handleError(
+        { name: 'Forbidden', message: 'You must be enrolled in the course before enrolling in a batch.' },
+        res,
+        'You must be enrolled in the course before enrolling in a batch.',
+        403
+      );
+    }
+
     // Check if batch is full
     if (batch.currentStrength >= batch.maxStrength) {
       return handleError({ name: 'Forbidden' }, res, 'Batch is full');

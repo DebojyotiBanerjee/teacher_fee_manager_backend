@@ -30,11 +30,14 @@ const feeQRCodeValidator = (req, res, next) => {
 
     const file = req.files.qrCode;
 
-    // Check file type
-    if (!file.type || !['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+    
+
+    // Check file type - try both type and mimetype properties
+    const fileType = file.type || file.mimetype;
+    if (!fileType || !fileType.startsWith('image/')) {      
       return res.status(400).json({
         success: false,
-        message: 'Only PNG or JPEG images are allowed'
+        message: 'Only image files are allowed'
       });
     }
 
@@ -69,8 +72,16 @@ const paymentScreenshotValidator = (req, res, next) => {
 
     const file = req.files.screenshot;
 
-    // Check file type
-    if (!file.type || !['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+    // Debug logging
+    console.log('File object:', file);
+    console.log('File type:', file.type);
+    console.log('File mimetype:', file.mimetype);
+    console.log('File name:', file.name);
+
+    // Check file type - try both type and mimetype properties
+    const fileType = file.type || file.mimetype;
+    if (!fileType || !['image/png', 'image/jpeg', 'image/jpg'].includes(fileType)) {
+      console.log('File validation failed - fileType:', fileType);
       return res.status(400).json({
         success: false,
         message: 'Only PNG or JPEG images are allowed'
