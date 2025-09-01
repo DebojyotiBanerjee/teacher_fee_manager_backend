@@ -40,9 +40,9 @@ const detailTeacherValidator = [
     .optional().isObject().withMessage('Social media must be an object'),
   body('socialMedia.linkedIn')
     .optional().isString().withMessage('LinkedIn must be a string'),
-  body('user')
-    .notEmpty().withMessage('User is required')
-    .isMongoId().withMessage('User must be a valid Mongo ID'),
+  // body('user')
+  //   .notEmpty().withMessage('User is required')
+  //   .isMongoId().withMessage('User must be a valid Mongo ID'),
   body('dob')
     .notEmpty().withMessage('Date of birth is required')
     .isISO8601().withMessage('Date of birth must be a valid date')
