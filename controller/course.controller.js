@@ -2,6 +2,7 @@ const Course = require('../models/course.models');
 const DetailTeacher = require('../models/detailTeacher.models');
 const CourseApplication = require('../models/courseApplication.models');
 const Payment = require('../models/payment.models')
+const DetailStudent = require('../models/detailStudent.model');
 const { sanitizeRequest } = require('../utils/sanitizer');
 const {
   handleError,
@@ -342,28 +343,23 @@ exports.enrollInCourse = async (req, res) => {
       message: 'Course ID is required. Provide it in URL params or request body.' 
     }, res, 'Course ID is required');
   }
+
+  // Check if student has completed their profile
+  const studentProfile = await DetailStudent.findOne({ user: req.user._id, isDeleted: false });
+  if (!studentProfile) {
+    return handleError(
+      { name: 'Forbidden', message: 'You must complete your profile before enrolling in courses.' },
+      res,
+      'You must complete your profile before enrolling in courses.',
+      403
+    );
+  }
   
   const course = await Course.findById(courseId);
   if (!course) return handleError({ name: 'NotFound' }, res, 'Course not found');
   
   const existing = await checkDuplicate(CourseApplication, { course: courseId, student: req.user._id });
   if (existing) return handleError({ name: 'Duplicate', message: 'You have already enrolled in this course.' }, res, 'You have already enrolled in this course.');
-  
-  // Check if student has paid for the course before allowing enrollment
-  const payment = await Payment.findOne({
-    student: req.user._id,
-    course: courseId,
-    status: 'paid'
-  });
-
-  if (!payment) {
-    return handleError(
-      { name: 'Forbidden', message: 'You must pay for the course before enrolling.' },
-      res,
-      'You must pay for the course before enrolling.',
-      403
-    );
-  }
   
   try {
     // Create course application 

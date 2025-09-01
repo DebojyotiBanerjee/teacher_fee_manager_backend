@@ -4,6 +4,7 @@ const DetailTeacher = require('../models/detailTeacher.models');
 const CourseApplication = require('../models/courseApplication.models');
 const Attendance = require('../models/attendance.models');
 const BatchEnrollment = require('../models/batchEnrollment.models');
+const Payment = require('../models/payment.models') 
 
 const { handleError, sendSuccessResponse, canAccessCourse, logControllerAction, isOwner, softDelete } = require('../utils/controllerUtils');
 const { sanitizeRequest } = require('../utils/sanitizer');
@@ -488,6 +489,38 @@ exports.enrollInBatch = async (req, res) => {
     if (!batch) {
       return handleError({ name: 'NotFound' }, res, 'Batch not found');
     }
+
+    // Check if student is enrolled in the course before allowing batch enrollment
+    const courseEnrollment = await CourseApplication.findOne({
+      course: batch.course._id,
+      student: studentId
+    });
+    
+    // Check if student has paid for the course before allowing enrollment
+      const payment = await Payment.findOne({
+        student: req.user._id,
+        course: batch.course._id,
+        status: 'paid'
+      });
+    
+      if (!payment) {
+        return handleError(
+          { name: 'Forbidden', message: 'You must pay for the course before enrolling.' },
+          res,
+          'You must pay for the course before enrolling.',
+          403
+        );
+      }
+
+    if (!courseEnrollment) {
+      return handleError(
+        { name: 'Forbidden', message: 'You must be enrolled in the course before enrolling in a batch.' },
+        res,
+        'You must be enrolled in the course before enrolling in a batch.',
+        403
+      );
+    }
+
     // Check if batch is full
     if (batch.currentStrength >= batch.maxStrength) {
       return handleError({ name: 'Forbidden' }, res, 'Batch is full');

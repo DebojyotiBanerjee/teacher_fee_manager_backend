@@ -47,14 +47,10 @@ const detailTeacherSchema = new Schema({
   }],
   socialMedia: {
     linkedIn: String
-  },
-  profilePic: {
-    type: String,
-    trim: true
-  },
+  },   
   isProfileComplete: {
     type: Boolean, default: false
-  },
+  }, 
   isDeleted: {
     type: Boolean,
     default: false
