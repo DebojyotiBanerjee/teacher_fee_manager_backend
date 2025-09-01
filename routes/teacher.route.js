@@ -82,7 +82,7 @@ router.get('/stats', authenticateTeacher, teacherStatsController.getTeacherStats
 // Only teachers can create, update, get, delete their QR code
 router.post('/qr-create', authenticateTeacher, uploadQRCode(), feeController.createQRCode);
 router.get('/qr-get', authenticateTeacher, feeController.getQRCode);
-router.put('/qr-update', authenticateTeacher, feeQRCodeValidator, feeController.updateQRCode);
+router.put('/qr-update', authenticateTeacher, uploadQRCode(), feeQRCodeValidator, feeController.updateQRCode);
 router.delete('/qr-delete', authenticateTeacher, feeController.deleteQRCode);
 
 // Offline payment management routes
@@ -103,7 +103,7 @@ router.post('/expense', authenticateTeacher, teacherExpenseValidator, validator,
 router.get('/expense', authenticateTeacher, teacherExpenseController.getExpenses);
 
 // Get expense summary
-router.get('/expense/summary', authenticateTeacher, teacherExpenseController.getExpenseSummary);
+router.get('/expense/summary', authenticateTeacher, teacherExpenseController.getExpenseSummaryExpenses);
 
 // Get specific expense
 router.get('/expense/:expenseId', authenticateTeacher, teacherExpenseController.getExpenseById);

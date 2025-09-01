@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/user.models');
 const { validationResult } = require('express-validator');
 const nodemailer = require('nodemailer');
+const { handleError } = require('../utils/controllerUtils');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {

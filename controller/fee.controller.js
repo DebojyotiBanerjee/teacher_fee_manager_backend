@@ -1,4 +1,5 @@
 const Course = require('../models/course.models');
+const Batch = require('../models/batch.models');
 const BatchEnrollment = require('../models/batchEnrollment.models');
 const Payment = require('../models/payment.models');
 const Fee = require('../models/fee.models');
@@ -6,6 +7,7 @@ const OfflinePayment = require('../models/offlinePayment.models');
 const mongoose = require('mongoose');
 const { teacherHasQRCode, handleError, sendSuccessResponse } = require('../utils/controllerUtils');
 const CloudinaryService = require('../utils/cloudinaryService');
+const courseApplication = require('../models/courseApplication.models');
 
 
 const ensureTeacherRole = (req, res) => {
@@ -81,16 +83,21 @@ exports.studentPayForCourse = async (req, res) => {
     }
     const studentId = req.user._id;
     // Get data from formidable fields
-    const { courseId: courseIdRaw, transactionId: transactionIdRaw } = req.fields;
+    const { courseId: courseIdRaw, transactionId: transactionIdRaw , batchId: batchIdRaw} = req.fields;
     
     // Extract values from arrays (formidable returns arrays)
     const courseId = Array.isArray(courseIdRaw) ? courseIdRaw[0] : courseIdRaw;
     const transactionId = Array.isArray(transactionIdRaw) ? transactionIdRaw[0] : transactionIdRaw;
+    const batchId = Array.isArray(batchIdRaw) ? batchIdRaw[0] : batchIdRaw;
     
     
     
     if (!courseId) {
       return handleError({ name: 'ValidationError', message: 'Course ID is required.' }, res, 'Course ID is required.', 400);
+    }
+
+    if(!batchId){
+      return handleError({ name : 'ValidationError', message: 'Batch ID is required.'},res,'Batch ID is required', 400)
     }
     
     if (!mongoose.Types.ObjectId.isValid(courseId)) {
@@ -104,6 +111,11 @@ exports.studentPayForCourse = async (req, res) => {
     const course = await Course.findById(courseId);
     if (!course || course.isDeleted) {
       return handleError({ name: 'NotFound', message: 'Course not found or deleted.' }, res, 'Course not found or deleted.', 404);
+    }
+
+    const batch= await Batch.findById(batchId);
+    if(!batch || batch.isDeleted){
+      return handleError({ name : 'Not Found', message: 'Batch not found or deleted.'}, res, 'Batch not found or deleted.', 404);
     }
     // Calculate course end date
     const durationStr = course.duration ? course.duration.toLowerCase() : '';
@@ -146,6 +158,7 @@ exports.studentPayForCourse = async (req, res) => {
     const regularPayment = await Payment.findOne({
       student: studentId,
       course: courseId,
+      batch: batchId,
       paidAt: { $gte: startOfMonth, $lte: endOfMonth },
       status: 'paid'
     });
@@ -154,6 +167,7 @@ exports.studentPayForCourse = async (req, res) => {
     const offlinePayment = await OfflinePayment.findOne({
       student: studentId,
       course: courseId,
+      batch: batchId,
       paymentDate: { $gte: startOfMonth, $lte: endOfMonth },
       status: 'paid'
     });
@@ -190,6 +204,7 @@ exports.studentPayForCourse = async (req, res) => {
       payment = await Payment.create({
         student: studentId,
         course: courseId,
+        batch: batchId,
         teacher: course.teacher,
         screenshotUrl: uploadResult.url,
         cloudinaryPublicId: uploadResult.public_id,
@@ -201,7 +216,8 @@ exports.studentPayForCourse = async (req, res) => {
     }
     // Get the populated payment with course details
     const populatedPayment = await Payment.findById(payment._id)
-      .populate('course', 'title duration fee');
+      .populate('course', 'title duration fee')
+      .populate('batch', 'batchName');
 
     sendSuccessResponse(res, {
       paymentId: payment._id,
@@ -215,6 +231,9 @@ exports.studentPayForCourse = async (req, res) => {
         title: populatedPayment.course.title,
         duration: populatedPayment.course.duration,
         fee: populatedPayment.course.fee
+      },
+      batch:{
+        batchName: populatedPayment.batch.batchName
       }
     }, 'Payment successful. Next payment due: ' + payment.nextDueDate.toISOString().slice(0, 10));
   } catch (err) {
@@ -308,12 +327,10 @@ exports.updateQRCode = async (req, res) => {
     }
 
     // Upload new image
-    const uploadResult = await CloudinaryService.uploadFile(qrCodeFile, {
-      folder: 'qr_codes'
-    });
+    const uploadResult = await CloudinaryService.uploadQRCode(qrCodeFile);
 
-    // Update fee record
-    fee.qrCodeUrl = uploadResult.url;
+    // Update fee record with cache-busting timestamp
+    fee.qrCodeUrl = `${uploadResult.url}?v=${new Date().getTime()}`;
     fee.cloudinaryPublicId = uploadResult.public_id;
     fee.qrUploadedAt = new Date();
 

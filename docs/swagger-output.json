@@ -418,6 +418,12 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "fullname": {
+                    "example": "any"
+                  },
+                  "phone": {
+                    "example": "any"
+                  },
                   "gender": {
                     "example": "any"
                   },
@@ -1160,14 +1166,28 @@
         "description": "",
         "parameters": [
           {
-            "name": "startDate",
+            "name": "sortBy",
             "in": "query",
             "schema": {
               "type": "string"
             }
           },
           {
-            "name": "endDate",
+            "name": "sortOrder",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filterType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
             "in": "query",
             "schema": {
               "type": "string"
@@ -1256,12 +1276,6 @@
                   "courseId": {
                     "example": "any"
                   },
-                  "amount": {
-                    "example": "any"
-                  },
-                  "batchId": {
-                    "example": "any"
-                  },
                   "paymentDate": {
                     "example": "any"
                   }
@@ -1276,40 +1290,6 @@
       "get": {
         "description": "",
         "parameters": [
-          {
-            "name": "startDate",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "endDate",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "400": {
-            "description": "Bad Request"
-          }
-        }
-      }
-    },
-    "/api/teacher/offline-payments/{courseId}": {
-      "get": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "courseId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
           {
             "name": "startDate",
             "in": "query",
@@ -1366,10 +1346,37 @@
           "400": {
             "description": "Bad Request"
           }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "example": "any"
+                  },
+                  "description": {
+                    "example": "any"
+                  },
+                  "category": {
+                    "example": "any"
+                  },
+                  "status": {
+                    "example": "any"
+                  },
+                  "date": {
+                    "example": "any"
+                  },
+                  "notes": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
         }
-      }
-    },
-    "/api/teacher/expenses": {
+      },
       "get": {
         "description": "",
         "parameters": [
@@ -1409,7 +1416,7 @@
         }
       }
     },
-    "/api/teacher/expenses/summary": {
+    "/api/teacher/expense/summary": {
       "get": {
         "description": "",
         "parameters": [

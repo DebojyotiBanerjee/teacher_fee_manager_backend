@@ -24,8 +24,17 @@ exports.enrollInBatch = async (req, res) => {
     // Check if already enrolled in another batch for the same course
     const alreadyEnrolled = await BatchEnrollment.findOne({
       student: studentId,
-      batch: { $ne: batchId }
-    }).populate('batch');
+      batch: { $ne: batchId },
+      isDeleted: { $ne: true }
+    })
+      .populate({
+        path: 'batch',
+        match: { isDeleted: false },
+        populate: { path: 'course', select: '_id' }
+      });
+      console.log('alreadyEnrolled:', alreadyEnrolled);
+
+
     if (alreadyEnrolled && alreadyEnrolled.batch.course.toString() === batch.course._id.toString()) {
       return handleError({ name: 'Duplicate', message: 'Already enrolled in another batch for this course' }, res);
     }
