@@ -25,7 +25,7 @@ exports.notifyUpcomingFeeDue = async () => {
     const payments = await Payment.find({
       nextDueDate: { $gte: sevenDaysLater.setHours(0,0,0,0), $lt: sevenDaysLater.setHours(23,59,59,999) },
       status: { $ne: 'overdue' }
-    }).populate('student course');
+    }).populate('student').populate('course');
     for (const payment of payments) {
       // Create notification for student
       await Notification.create({
@@ -52,7 +52,7 @@ exports.emailFeeDueToday = async () => {
     const payments = await Payment.find({
       nextDueDate: { $gte: todayStart, $lte: todayEnd },
       status: { $ne: 'paid' }
-    }).populate('student course');
+    }).populate('student').populate('course');
     for (const payment of payments) {
       const student = payment.student;
       if (student && student.email) {
