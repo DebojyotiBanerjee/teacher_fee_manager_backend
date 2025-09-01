@@ -136,14 +136,15 @@ exports.getTeacherNotifications = async (req, res) => {
       })
     ]);
 
-    // Get upcoming batches for the teacher (next 3 batches)
+    // Get currently running batches for the teacher (next 3 batches that have started)
+    const now = new Date();
     const upcomingBatches = await Batch.find({
       course: { $in: await Course.find({ teacher: req.user._id }).distinct('_id') },
       isDeleted: false,
-      startDate: { $gte: new Date() }
+      startDate: { $lte: now }
     })
       .populate('course', 'title')
-      .sort({ startDate: 1 })
+      .sort({ startDate: -1 })
       .limit(3);
 
     // Get unread count

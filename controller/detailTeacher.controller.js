@@ -287,4 +287,3 @@ module.exports = {
   deleteDetailTeacher: exports.deleteDetailTeacher,
   isTeacherProfileComplete
 };
-

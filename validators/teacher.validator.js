@@ -26,11 +26,7 @@ const detailTeacherValidator = [
   body('address.state')
     .optional().isString().withMessage('State must be a string'),
   body('address.pincode')
-    .optional().isString().withMessage('Pincode must be a string'),  
-  body('profilePic')
-    .optional()
-    .isString().withMessage('Profile picture must be a string')
-    .isURL().withMessage('Profile picture must be a valid URL'),
+    .optional().isString().withMessage('Pincode must be a string'),    
   body('subjectsTaught')
     .isArray({ min: 1 }).withMessage('Subjects taught must be a non-empty array'),
   body('subjectsTaught.*')

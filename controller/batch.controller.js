@@ -4,6 +4,7 @@ const DetailTeacher = require('../models/detailTeacher.models');
 const CourseApplication = require('../models/courseApplication.models');
 const Attendance = require('../models/attendance.models');
 const BatchEnrollment = require('../models/batchEnrollment.models');
+const Payment = require('../models/payment.models') 
 
 const { handleError, sendSuccessResponse, canAccessCourse, logControllerAction, isOwner, softDelete } = require('../utils/controllerUtils');
 const { sanitizeRequest } = require('../utils/sanitizer');
@@ -494,6 +495,22 @@ exports.enrollInBatch = async (req, res) => {
       course: batch.course._id,
       student: studentId
     });
+    
+    // Check if student has paid for the course before allowing enrollment
+      const payment = await Payment.findOne({
+        student: req.user._id,
+        course: batch.course._id,
+        status: 'paid'
+      });
+    
+      if (!payment) {
+        return handleError(
+          { name: 'Forbidden', message: 'You must pay for the course before enrolling.' },
+          res,
+          'You must pay for the course before enrolling.',
+          403
+        );
+      }
 
     if (!courseEnrollment) {
       return handleError(
