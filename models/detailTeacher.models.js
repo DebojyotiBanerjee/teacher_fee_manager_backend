@@ -2,7 +2,12 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const detailTeacherSchema = new Schema({
-  
+  user: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    unique: true
+  },
   gender: {
     type: String,
     enum: ['Male', 'Female', 'Other' ],
