@@ -25,7 +25,7 @@ exports.notifyUpcomingFeeDue = async () => {
     const payments = await Payment.find({
       nextDueDate: { $gte: sevenDaysLater.setHours(0,0,0,0), $lt: sevenDaysLater.setHours(23,59,59,999) },
       status: { $ne: 'overdue' }
-    }).populate('student course');
+    }).populate('student').populate('course');
     for (const payment of payments) {
       // Create notification for student
       await Notification.create({
@@ -52,7 +52,7 @@ exports.emailFeeDueToday = async () => {
     const payments = await Payment.find({
       nextDueDate: { $gte: todayStart, $lte: todayEnd },
       status: { $ne: 'paid' }
-    }).populate('student course');
+    }).populate('student').populate('course');
     for (const payment of payments) {
       const student = payment.student;
       if (student && student.email) {
@@ -136,14 +136,15 @@ exports.getTeacherNotifications = async (req, res) => {
       })
     ]);
 
-    // Get upcoming batches for the teacher (next 3 batches)
+    // Get currently running batches for the teacher (next 3 batches that have started)
+    const now = new Date();
     const upcomingBatches = await Batch.find({
       course: { $in: await Course.find({ teacher: req.user._id }).distinct('_id') },
       isDeleted: false,
-      startDate: { $gte: new Date() }
+      startDate: { $lte: now }
     })
       .populate('course', 'title')
-      .sort({ startDate: 1 })
+      .sort({ startDate: -1 })
       .limit(3);
 
     // Get unread count
