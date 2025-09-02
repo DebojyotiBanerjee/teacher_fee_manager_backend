@@ -5,19 +5,86 @@ const BatchEnrollment = require('../models/batchEnrollment.models');
 const Payment = require('../models/payment.models');
 const CourseApplication = require('../models/courseApplication.models');
 
+// Helper function to get next class date for a batch
+const getNextClassDate = (batch) => {
+  const now = new Date();
+  const batchStartDate = new Date(batch.startDate);
+  
+  // If batch hasn't started yet, return start date
+  if (batchStartDate > now) {
+    return batchStartDate;
+  }
+  
+  const dayMap = {
+    'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 
+    'Thu': 4, 'Fri': 5, 'Sat': 6
+  };
+  
+  const batchDays = batch.days.map(day => dayMap[day]).sort((a, b) => a - b);
+  const currentDay = now.getDay();
+  
+  // Parse batch time (assuming format like "10:00 AM" or "14:30")
+  const timeComponents = batch.time.split(' ');
+  const timeStr = timeComponents[0];
+  const period = timeComponents[1];
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  let batchHour = hours;
+  
+  if (period && period.toUpperCase() === 'PM' && hours !== 12) {
+    batchHour += 12;
+  } else if (period && period.toUpperCase() === 'AM' && hours === 12) {
+    batchHour = 0;
+  }
+  
+  // Check if there's a class today
+  if (batchDays.includes(currentDay)) {
+    const todayClassTime = new Date(now);
+    todayClassTime.setHours(batchHour, minutes || 0, 0, 0);
+    
+    if (todayClassTime > now) {
+      return todayClassTime;
+    }
+  }
+  
+  // Find next class day in the week
+  for (let i = 1; i <= 7; i++) {
+    const checkDay = (currentDay + i) % 7;
+    if (batchDays.includes(checkDay)) {
+      const nextClassDate = new Date(now);
+      nextClassDate.setDate(now.getDate() + i);
+      nextClassDate.setHours(batchHour, minutes || 0, 0, 0);
+      return nextClassDate;
+    }
+  }
+  
+  return null;
+};
+
 // Get upcoming batches for teacher
 exports.getTeacherUpcomingBatches = async (teacherId) => {
   try {
-    const upcomingBatches = await Batch.find({
+    const now = new Date();
+    const sevenDaysFromNow = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
+    
+    const batches = await Batch.find({
       course: { $in: await Course.find({ teacher: teacherId }).distinct('_id') },
       isDeleted: false,
-      startDate: { $gte: new Date() }
+      startDate: { $lte: sevenDaysFromNow }
     })
-      .populate('course', 'title')
-      .sort({ startDate: 1 })
-      .limit(3);
+      .populate('course', 'title');
 
-    return upcomingBatches;
+    // Calculate next class date for each batch and filter
+    const batchesWithNextClass = batches
+      .map(batch => {
+        const nextClassDate = getNextClassDate(batch);
+        return nextClassDate ? { ...batch.toObject(), nextClassDate } : null;
+      })
+      .filter(batch => batch !== null)
+      .filter(batch => batch.nextClassDate <= sevenDaysFromNow)
+      .sort((a, b) => a.nextClassDate - b.nextClassDate)
+      .slice(0, 3);
+
+    return batchesWithNextClass;
   } catch (error) {
     console.error('Error getting teacher upcoming batches:', error);
     return [];
@@ -27,6 +94,9 @@ exports.getTeacherUpcomingBatches = async (teacherId) => {
 // Get upcoming batches for student
 exports.getStudentUpcomingBatches = async (studentId) => {
   try {
+    const now = new Date();
+    const sevenDaysFromNow = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
+    
     const studentEnrollments = await BatchEnrollment.find({ 
       student: studentId 
     }).populate('batch');
@@ -35,16 +105,25 @@ exports.getStudentUpcomingBatches = async (studentId) => {
       .filter(enrollment => enrollment.batch && !enrollment.batch.isDeleted)
       .map(enrollment => enrollment.batch._id);
 
-    const upcomingBatches = await Batch.find({
+    const batches = await Batch.find({
       _id: { $in: enrolledBatchIds },
       isDeleted: false,
-      startDate: { $gte: new Date() }
+      startDate: { $lte: sevenDaysFromNow }
     })
-      .populate('course', 'title')
-      .sort({ startDate: 1 })
-      .limit(3);
+      .populate('course', 'title');
 
-    return upcomingBatches;
+    // Calculate next class date for each batch and filter
+    const batchesWithNextClass = batches
+      .map(batch => {
+        const nextClassDate = getNextClassDate(batch);
+        return nextClassDate ? { ...batch.toObject(), nextClassDate } : null;
+      })
+      .filter(batch => batch !== null)
+      .filter(batch => batch.nextClassDate <= sevenDaysFromNow)
+      .sort((a, b) => a.nextClassDate - b.nextClassDate)
+      .slice(0, 3);
+
+    return batchesWithNextClass;
   } catch (error) {
     console.error('Error getting student upcoming batches:', error);
     return [];
@@ -77,10 +156,14 @@ exports.getTeacherNotifications = async (teacherId, page = 1, limit = 10) => {
       isDeleted: false
     });
 
+    // Get upcoming batches with next class dates
+    const upcomingBatches = await this.getTeacherUpcomingBatches(teacherId);
+
     return {
       notifications,
       total,
       unreadCount,
+      upcomingBatches,
       page,
       limit,
       totalPages: Math.ceil(total / limit)
@@ -91,6 +174,7 @@ exports.getTeacherNotifications = async (teacherId, page = 1, limit = 10) => {
       notifications: [],
       total: 0,
       unreadCount: 0,
+      upcomingBatches: [],
       page,
       limit,
       totalPages: 0
@@ -124,7 +208,9 @@ exports.getStudentNotifications = async (studentId, page = 1, limit = 10) => {
       isDeleted: false
     });
 
-    // Get upcoming batches for courses the student has enrolled in (paid for)
+    // Get upcoming batches for courses the student has enrolled in
+    const now = new Date();
+    const sevenDaysFromNow = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
     
     // Find courses the student has paid for or enrolled in
     const [studentPayments, studentEnrollments] = await Promise.all([
@@ -140,15 +226,24 @@ exports.getStudentNotifications = async (studentId, page = 1, limit = 10) => {
     // Combine both paid courses and enrolled courses
     const enrolledCourseIds = [...new Set([...studentPayments, ...studentEnrollments])];
 
-    // Get upcoming batches for these courses
-    const upcomingBatches = await Batch.find({
+    // Get batches for these courses
+    const batches = await Batch.find({
       course: { $in: enrolledCourseIds },
       isDeleted: false,
-      startDate: { $gte: new Date() }
+      startDate: { $lte: sevenDaysFromNow }
     })
-      .populate('course', 'title')
-      .sort({ startDate: 1 })
-      .limit(3);
+      .populate('course', 'title');
+
+    // Calculate next class date for each batch and filter
+    const upcomingBatches = batches
+      .map(batch => {
+        const nextClassDate = getNextClassDate(batch);
+        return nextClassDate ? { ...batch.toObject(), nextClassDate } : null;
+      })
+      .filter(batch => batch !== null)
+      .filter(batch => batch.nextClassDate <= sevenDaysFromNow)
+      .sort((a, b) => a.nextClassDate - b.nextClassDate)
+      .slice(0, 3);
 
     return {
       notifications,
@@ -216,4 +311,4 @@ exports.markAllNotificationsAsRead = async (userId) => {
     console.error('Error marking all notifications as read:', error);
     return 0;
   }
-}; 
+};
