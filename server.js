@@ -1,4 +1,3 @@
-
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -29,8 +28,28 @@ connectDB();
 const app = express();
 
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || "https://teacher-tuition-erp.vercel.app/",
-  credentials: true,   
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      'https://teacher-tuition-erp.vercel.app',
+      'http://localhost:5173',
+      process.env.FRONTEND_URL?.replace(/\/$/, '') // Remove trailing slash if present
+    ].filter(Boolean); // Remove any undefined values
+    
+    // Allow requests with no origin (like mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin) || allowedOrigins.some(allowedOrigin => 
+      origin.startsWith(allowedOrigin)
+    )) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200 // For legacy browser support
 };
 
 // Middleware
