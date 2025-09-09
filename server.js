@@ -29,9 +29,8 @@ connectDB();
 const app = express();
 
 const corsOptions = {
-  origin: "http://localhost:5173", // Frontend URL
-  credentials: true, // Allow cookies and credentials
-  
+  origin: process.env.FRONTEND_URL || "https://teacher-tuition-erp.vercel.app/",
+  credentials: true,   
 };
 
 // Middleware
