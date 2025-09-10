@@ -26,11 +26,7 @@ const detailTeacherValidator = [
   body('address.state')
     .optional().isString().withMessage('State must be a string'),
   body('address.pincode')
-    .optional().isString().withMessage('Pincode must be a string'),  
-  body('profilePic')
-    .optional()
-    .isString().withMessage('Profile picture must be a string')
-    .isURL().withMessage('Profile picture must be a valid URL'),
+    .optional().isString().withMessage('Pincode must be a string'),    
   body('subjectsTaught')
     .isArray({ min: 1 }).withMessage('Subjects taught must be a non-empty array'),
   body('subjectsTaught.*')
@@ -40,9 +36,9 @@ const detailTeacherValidator = [
     .optional().isObject().withMessage('Social media must be an object'),
   body('socialMedia.linkedIn')
     .optional().isString().withMessage('LinkedIn must be a string'),
-  body('user')
-    .notEmpty().withMessage('User is required')
-    .isMongoId().withMessage('User must be a valid Mongo ID'),
+  // body('user')
+  //   .notEmpty().withMessage('User is required')
+  //   .isMongoId().withMessage('User must be a valid Mongo ID'),
   body('dob')
     .notEmpty().withMessage('Date of birth is required')
     .isISO8601().withMessage('Date of birth must be a valid date')

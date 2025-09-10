@@ -189,7 +189,7 @@ exports.deleteExpense = async (req, res) => {
 };
 
 // Get expense summary
-exports.getExpenseSummary = async (req, res) => {
+exports.getExpenseSummaryExpenses = async (req, res) => {
     try {
         const teacherId = req.user._id;
         const { startDate, endDate } = req.query;
