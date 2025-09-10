@@ -1,4 +1,3 @@
-
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -29,10 +28,27 @@ connectDB();
 const app = express();
 
 const corsOptions = {
-  origin: "http://localhost:5173", // Frontend URL
-  credentials: true, // Allow cookies and credentials
-  
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      process.env.FRONTEND_URL?.replace(/\/$/, ''),
+      'http://localhost:5173'      
+    ].filter(Boolean);
+
+    // Allow requests with no origin (Postman, CLI tools)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200
 };
+
 
 // Middleware
 app.use(cors(corsOptions));
