@@ -418,6 +418,12 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "fullname": {
+                    "example": "any"
+                  },
+                  "phone": {
+                    "example": "any"
+                  },
                   "gender": {
                     "example": "any"
                   },
