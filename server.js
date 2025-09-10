@@ -30,7 +30,8 @@ const app = express();
 const corsOptions = {
   origin: (origin, callback) => {
     const allowedOrigins = [
-      process.env.FRONTEND_URL?.replace(/\/$/, '')      
+      process.env.FRONTEND_URL?.replace(/\/$/, ''),
+      'http://localhost:5173'      
     ].filter(Boolean);
 
     // Allow requests with no origin (Postman, CLI tools)
