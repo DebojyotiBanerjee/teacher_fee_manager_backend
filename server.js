@@ -30,17 +30,14 @@ const app = express();
 const corsOptions = {
   origin: (origin, callback) => {
     const allowedOrigins = [
-      'https://teacher-tuition-erp.vercel.app',
-      'http://localhost:5173',
-      process.env.FRONTEND_URL?.replace(/\/$/, '') // Remove trailing slash if present
-    ].filter(Boolean); // Remove any undefined values
-    
-    // Allow requests with no origin (like mobile apps, curl, Postman)
+      process.env.FRONTEND_URL?.replace(/\/$/, ''), // removes trailing slash
+      'http://localhost:5173'
+    ].filter(Boolean);
+
+    // Allow requests with no origin (Postman, CLI tools)
     if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin) || allowedOrigins.some(allowedOrigin => 
-      origin.startsWith(allowedOrigin)
-    )) {
+
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -49,8 +46,9 @@ const corsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 200 // For legacy browser support
+  optionsSuccessStatus: 200
 };
+
 
 // Middleware
 app.use(cors(corsOptions));
